@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Stock - Sistema de Bebidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.0.3/plotly.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .nav-item { transition: all 0.3s ease; }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.1); }
+        .nav-item.active { background: rgba(255, 255, 255, 0.2); }
+        .stock-card { transition: all 0.3s ease; }
+        .stock-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .input-focus { transition: all 0.3s ease; }
+        .input-focus:focus { transform: scale(1.02); box-shadow: 0 0 20px rgba(220, 38, 127, 0.3); }
+        .stock-high { background: #10b981; color: white; }
+        .stock-medium { background: #f59e0b; color: white; }
+        .stock-low { background: #ef4444; color: white; }
+        .stock-critical { background: #7f1d1d; color: white; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(226, 232, 240, 0.7);
+        }
+        .stock-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .stock-sufficient {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .stock-low {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .stock-out {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <button onclick="window.location.href='ventas.html'" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white mr-4">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Volver a Ventas
+                    </button>
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center">
+                            <i class="fas fa-warehouse text-2xl text-white mr-3"></i>
+                            <h1 class="text-xl font-bold text-white">Control de Stock - Bebidas</h1>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="newMovementBtn" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white">
+                        <i class="fas fa-exchange-alt mr-1"></i>
+                        Nuevo Movimiento
+                    </button>
+                    <button id="refreshBtn" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white">
+                        <i class="fas fa-refresh mr-1"></i>
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Agregar este código al final del body en cada página HTML -->
+
+<!-- Chatbot Widget -->
+<div id="chatbotWidget" class="fixed bottom-6 right-6 z-40">
+  <button id="chatbotToggle" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110">
+    <i class="fas fa-robot text-xl"></i>
+  </button>
+</div>
+
+<!-- Chatbot Modal -->
+<div id="chatbotModal" class="fixed bottom-24 right-6 w-80 h-96 bg-white rounded-xl shadow-2xl z-50 hidden flex-col border border-gray-200">
+  <!-- Header -->
+  <div class="bg-indigo-600 text-white p-4 rounded-t-xl flex justify-between items-center">
+    <div class="flex items-center">
+      <i class="fas fa-robot mr-2"></i>
+      <span class="font-semibold">Asistente Virtual</span>
+    </div>
+    <button id="chatbotClose" class="text-white hover:text-gray-200">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  
+  <!-- Chat Messages -->
+  <div id="chatbotMessages" class="flex-1 p-4 overflow-y-auto bg-gray-50">
+    <div class="chat-message bot-message mb-4">
+      <div class="bg-white rounded-lg p-3 shadow-sm max-w-[85%]">
+        <p class="text-sm text-gray-700">¡Hola! Soy tu asistente virtual. Puedo ayudarte con consultas sobre:</p>
+        <ul class="text-xs text-gray-600 mt-2 list-disc pl-4">
+          <li>Stock de productos</li>
+          <li>Ventas recientes</li>
+          <li>Compras y costeo</li>
+          <li>Información de artículos</li>
+        </ul>
+        <p class="text-xs text-gray-500 mt-2">¿En qué puedo ayudarte?</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Input Area -->
+  <div class="p-3 border-t border-gray-200">
+    <div class="flex space-x-2">
+      <input 
+        id="chatbotInput" 
+        type="text" 
+        placeholder="Escribe tu consulta..." 
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+      >
+      <button id="chatbotSend" class="bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 transition-colors">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+    <div class="mt-2 flex flex-wrap gap-1">
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Qué productos tienen stock bajo?">
+        Stock bajo
+      </button>
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Cuáles son las ventas de hoy?">
+        Ventas hoy
+      </button>
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Qué artículos hay en el sistema?">
+        Listar artículos
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .chat-message {
+    display: flex;
+    margin-bottom: 1rem;
+  }
+  
+  .user-message {
+    justify-content: flex-end;
+  }
+  
+  .bot-message {
+    justify-content: flex-start;
+  }
+  
+  .user-message > div {
+    background-color: #e0e7ff;
+    color: #3730a3;
+  }
+  
+  .bot-message > div {
+    background-color: white;
+    color: #374151;
+  }
+  
+  .quick-question {
+    transition: all 0.2s ease;
+  }
+  
+  .quick-question:hover {
+    transform: translateY(-1px);
+  }
+  
+  #chatbotModal {
+    transition: all 0.3s ease;
+  }
+  
+  #chatbotModal.show {
+    display: flex !important;
+    animation: slideInUp 0.3s ease;
+  }
+  
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const API = 'http://localhost:3000';
+  
+  // Elementos del DOM
+  const chatbotToggle = document.getElementById('chatbotToggle');
+  const chatbotModal = document.getElementById('chatbotModal');
+  const chatbotClose = document.getElementById('chatbotClose');
+  const chatbotMessages = document.getElementById('chatbotMessages');
+  const chatbotInput = document.getElementById('chatbotInput');
+  const chatbotSend = document.getElementById('chatbotSend');
+  const quickQuestions = document.querySelectorAll('.quick-question');
+  
+  // Estado del chatbot
+  let isChatbotOpen = false;
+  
+  // Funciones de utilidad
+  function addMessage(message, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'} mb-4`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = `rounded-lg p-3 shadow-sm max-w-[85%] ${isUser ? 'bg-indigo-100 text-indigo-800' : 'bg-white text-gray-700'}`;
+    
+    // Si el mensaje contiene HTML, lo insertamos directamente
+    if (typeof message === 'string' && message.includes('<')) {
+      messageContent.innerHTML = message;
+    } else {
+      messageContent.innerHTML = `<p class="text-sm">${message}</p>`;
+    }
+    
+    messageDiv.appendChild(messageContent);
+    chatbotMessages.appendChild(messageDiv);
+    
+    // Scroll al final
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+  }
+  
+  function showTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message bot-message mb-4';
+    typingDiv.id = 'typing-indicator';
+    
+    const typingContent = document.createElement('div');
+    typingContent.className = 'bg-white rounded-lg p-3 shadow-sm max-w-[85%]';
+    typingContent.innerHTML = `
+      <div class="flex space-x-1">
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+      </div>
+    `;
+    
+    typingDiv.appendChild(typingContent);
+    chatbotMessages.appendChild(typingDiv);
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    
+    return typingDiv;
+  }
+  
+  function removeTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) {
+      typingIndicator.remove();
+    }
+  }
+  
+  // Procesar consultas del usuario
+  async function processQuery(query) {
+    const typingIndicator = showTypingIndicator();
+    
+    try {
+      // Normalizar la consulta
+      const normalizedQuery = query.toLowerCase().trim();
+      
+      // Detectar el tipo de consulta
+      if (normalizedQuery.includes('stock') || normalizedQuery.includes('inventario')) {
+        if (normalizedQuery.includes('bajo') || normalizedQuery.includes('poco')) {
+          await handleLowStockQuery();
+        } else if (normalizedQuery.includes('total') || normalizedQuery.includes('general')) {
+          await handleTotalStockQuery();
+        } else {
+          await handleStockQuery(normalizedQuery);
+        }
+      } else if (normalizedQuery.includes('venta') || normalizedQuery.includes('ventas')) {
+        if (normalizedQuery.includes('hoy') || normalizedQuery.includes('hoy')) {
+          await handleTodaySalesQuery();
+        } else if (normalizedQuery.includes('reciente')) {
+          await handleRecentSalesQuery();
+        } else {
+          await handleSalesQuery();
+        }
+      } else if (normalizedQuery.includes('compra') || normalizedQuery.includes('compras') || normalizedQuery.includes('costeo')) {
+        await handlePurchasesQuery();
+      } else if (normalizedQuery.includes('artículo') || normalizedQuery.includes('artículos') || normalizedQuery.includes('producto')) {
+        await handleArticlesQuery();
+      } else if (normalizedQuery.includes('hola') || normalizedQuery.includes('help') || normalizedQuery.includes('ayuda')) {
+        showHelp();
+      } else {
+        addMessage("Lo siento, no entiendo tu consulta. Puedo ayudarte con información sobre stock, ventas, compras y artículos. ¿Podrías reformular tu pregunta?");
+      }
+    } catch (error) {
+      console.error('Error procesando consulta:', error);
+      addMessage("Lo siento, ha ocurrido un error al procesar tu consulta. Por favor, intenta de nuevo.");
+    } finally {
+      removeTypingIndicator();
+    }
+  }
+  
+  // Manejar consultas de stock bajo
+  async function handleLowStockQuery() {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const lowStockItems = data.data.filter(item => 
+          item.EstadoStock === 'STOCK_BAJO' || item.EstadoStock === 'SIN_STOCK'
+        );
+        
+        if (lowStockItems.length > 0) {
+          let message = `<p class="font-semibold text-sm mb-2">Productos con stock bajo o sin stock:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          
+          lowStockItems.forEach(item => {
+            const status = item.EstadoStock === 'SIN_STOCK' ? 
+              '<span class="text-red-500 font-medium">SIN STOCK</span>' : 
+              '<span class="text-yellow-500 font-medium">STOCK BAJO</span>';
+            
+            message += `<li>${item.idArticulos} - ${item.descripcionArticulos}: ${item.StockTotal} unidades ${status}</li>`;
+          });
+          
+          message += `</ul>`;
+          message += `<p class="text-xs text-gray-500 mt-2">Total: ${lowStockItems.length} productos</p>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("¡Excelente! No hay productos con stock bajo en este momento.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de stock. Intenta nuevamente.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock bajo:', error);
+      addMessage("Error al consultar el stock bajo. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de stock total
+  async function handleTotalStockQuery() {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const totalItems = data.data.length;
+        const totalStock = data.data.reduce((sum, item) => sum + item.StockTotal, 0);
+        const itemsWithStock = data.data.filter(item => item.StockTotal > 0).length;
+        const itemsWithoutStock = data.data.filter(item => item.StockTotal === 0).length;
+        
+        let message = `<p class="font-semibold text-sm mb-2">Resumen general de stock:</p>`;
+        message += `<div class="text-xs space-y-1">`;
+        message += `<p>• Total de artículos: ${totalItems}</p>`;
+        message += `<p>• Stock total: ${totalStock} unidades</p>`;
+        message += `<p>• Artículos con stock: ${itemsWithStock}</p>`;
+        message += `<p>• Artículos sin stock: ${itemsWithoutStock}</p>`;
+        message += `</div>`;
+        
+        addMessage(message);
+      } else {
+        addMessage("No se pudo obtener la información de stock general.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock total:', error);
+      addMessage("Error al consultar el stock general. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de stock específicas
+  async function handleStockQuery(query) {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        // Buscar productos que coincidan con la consulta
+        const searchTerm = query.replace('stock', '').trim();
+        const matchingItems = data.data.filter(item => 
+          item.idArticulos.toLowerCase().includes(searchTerm) || 
+          item.descripcionArticulos.toLowerCase().includes(searchTerm)
+        );
+        
+        if (matchingItems.length > 0) {
+          let message = `<p class="font-semibold text-sm mb-2">Resultados de stock:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          
+          matchingItems.slice(0, 5).forEach(item => {
+            const status = item.EstadoStock === 'SIN_STOCK' ? 
+              'text-red-500' : 
+              item.EstadoStock === 'STOCK_BAJO' ? 'text-yellow-500' : 'text-green-500';
+            
+            message += `<li>${item.idArticulos} - ${item.descripcionArticulos}: <span class="${status} font-medium">${item.StockTotal} unidades</span></li>`;
+          });
+          
+          message += `</ul>`;
+          
+          if (matchingItems.length > 5) {
+            message += `<p class="text-xs text-gray-500 mt-1">... y ${matchingItems.length - 5} productos más</p>`;
+          }
+          
+          addMessage(message);
+        } else {
+          addMessage(`No encontré productos que coincidan con "${searchTerm}". ¿Podrías intentar con otro término?`);
+        }
+      } else {
+        addMessage("No se pudo obtener la información de stock.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock:', error);
+      addMessage("Error al consultar el stock. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de ventas de hoy
+  async function handleTodaySalesQuery() {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`${API}/api/ventas?fechaDesde=${today}&fechaHasta=${today}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Ventas de hoy (${today}):</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas: ${totalSales}</p>`;
+          message += `<p>• Monto total: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          if (data.data.length <= 5) {
+            message += `<p class="text-xs font-medium mt-2">Detalles:</p>`;
+            message += `<ul class="text-xs space-y-1">`;
+            data.data.forEach(sale => {
+              message += `<li>Venta #${sale.VentaKey} - ${sale.Cliente}: $${(sale.TotalVenta || 0).toFixed(2)}</li>`;
+            });
+            message += `</ul>`;
+          }
+          
+          addMessage(message);
+        } else {
+          addMessage(`No hay ventas registradas para hoy (${today}).`);
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas de hoy.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas de hoy:', error);
+      addMessage("Error al consultar las ventas de hoy. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de ventas recientes
+  async function handleRecentSalesQuery() {
+    try {
+      // Obtener ventas de los últimos 7 días
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      const response = await fetch(`${API}/api/ventas?fechaDesde=${startDateStr}&fechaHasta=${endDateStr}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Ventas recientes (últimos 7 días):</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas: ${totalSales}</p>`;
+          message += `<p>• Monto total: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          // Mostrar las 3 ventas más recientes
+          const recentSales = data.data.slice(0, 3);
+          message += `<p class="text-xs font-medium mt-2">Ventas más recientes:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          recentSales.forEach(sale => {
+            const date = new Date(sale.Fecha).toLocaleDateString('es-ES');
+            message += `<li>${date} - Venta #${sale.VentaKey}: $${(sale.TotalVenta || 0).toFixed(2)}</li>`;
+          });
+          message += `</ul>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("No hay ventas registradas en los últimos 7 días.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas recientes.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas recientes:', error);
+      addMessage("Error al consultar las ventas recientes. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas generales de ventas
+  async function handleSalesQuery() {
+    try {
+      const response = await fetch(`${API}/api/ventas`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Resumen de ventas:</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas registradas: ${totalSales}</p>`;
+          message += `<p>• Monto total histórico: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("No hay ventas registradas en el sistema.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas:', error);
+      addMessage("Error al consultar las ventas. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de compras
+  async function handlePurchasesQuery() {
+    addMessage("La funcionalidad de consulta de compras está en desarrollo. Por ahora, puedes revisar las compras en la sección de 'Costeo de Compras'.");
+  }
+  
+  // Manejar consultas de artículos
+  async function handleArticlesQuery() {
+    try {
+      const response = await fetch(`${API}/api/articles`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const totalArticles = data.data.length;
+        const categories = [...new Set(data.data.map(item => item.Categoria).filter(Boolean))];
+        
+        let message = `<p class="font-semibold text-sm mb-2">Resumen de artículos:</p>`;
+        message += `<div class="text-xs space-y-1">`;
+        message += `<p>• Total de artículos: ${totalArticles}</p>`;
+        
+        if (categories.length > 0) {
+          message += `<p>• Categorías: ${categories.join(', ')}</p>`;
+        }
+        
+        message += `</div>`;
+        
+        // Mostrar algunos artículos como ejemplo
+        const sampleArticles = data.data.slice(0, 3);
+        message += `<p class="text-xs font-medium mt-2">Algunos artículos:</p>`;
+        message += `<ul class="text-xs space-y-1">`;
+        sampleArticles.forEach(article => {
+          message += `<li>${article.idArticulos} - ${article.descripcionArticulos} (${article.Categoria || 'Sin categoría'})</li>`;
+        });
+        message += `</ul>`;
+        
+        if (totalArticles > 3) {
+          message += `<p class="text-xs text-gray-500 mt-1">... y ${totalArticles - 3} artículos más</p>`;
+        }
+        
+        addMessage(message);
+      } else {
+        addMessage("No hay artículos registrados en el sistema.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo artículos:', error);
+      addMessage("Error al consultar los artículos. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Mostrar ayuda
+  function showHelp() {
+    const helpMessage = `
+      <p class="font-semibold text-sm mb-2">Puedo ayudarte con:</p>
+      <ul class="text-xs space-y-1 list-disc pl-4">
+        <li><strong>Consultas de stock:</strong> "stock bajo", "stock total", "stock de [producto]"</li>
+        <li><strong>Consultas de ventas:</strong> "ventas de hoy", "ventas recientes", "resumen de ventas"</li>
+        <li><strong>Consultas de compras:</strong> "compras recientes", "costeo"</li>
+        <li><strong>Consultas de artículos:</strong> "listar artículos", "artículos por categoría"</li>
+      </ul>
+      <p class="text-xs text-gray-500 mt-2">También puedes usar los botones de consulta rápida.</p>
+    `;
+    
+    addMessage(helpMessage);
+  }
+  
+  // Event Listeners
+  chatbotToggle.addEventListener('click', function() {
+    isChatbotOpen = !isChatbotOpen;
+    
+    if (isChatbotOpen) {
+      chatbotModal.classList.remove('hidden');
+      chatbotModal.classList.add('show');
+      chatbotInput.focus();
+    } else {
+      chatbotModal.classList.remove('show');
+      setTimeout(() => {
+        chatbotModal.classList.add('hidden');
+      }, 300);
+    }
+  });
+  
+  chatbotClose.addEventListener('click', function() {
+    isChatbotOpen = false;
+    chatbotModal.classList.remove('show');
+    setTimeout(() => {
+      chatbotModal.classList.add('hidden');
+    }, 300);
+  });
+  
+  chatbotSend.addEventListener('click', function() {
+    sendMessage();
+  });
+  
+  chatbotInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
+  
+  quickQuestions.forEach(button => {
+    button.addEventListener('click', function() {
+      const question = this.getAttribute('data-question');
+      chatbotInput.value = question;
+      sendMessage();
+    });
+  });
+  
+  function sendMessage() {
+    const message = chatbotInput.value.trim();
+    
+    if (message) {
+      addMessage(message, true);
+      chatbotInput.value = '';
+      
+      // Procesar la consulta después de un pequeño delay
+      setTimeout(() => {
+        processQuery(message);
+      }, 500);
+    }
+  }
+  
+  // Cerrar el chatbot al hacer clic fuera de él
+  document.addEventListener('click', function(e) {
+    if (isChatbotOpen && 
+        !chatbotModal.contains(e.target) && 
+        !chatbotToggle.contains(e.target)) {
+      isChatbotOpen = false;
+      chatbotModal.classList.remove('show');
+      setTimeout(() => {
+        chatbotModal.classList.add('hidden');
+      }, 300);
+    }
+  });
+});
+</script>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8 fade-in">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Stock de Bebidas</h2>
+                    <p class="text-gray-600">Control de inventario y movimientos de stock</p>
+                </div>
+                <div class="flex space-x-4">
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <p class="text-sm text-gray-600">Total Artículos</p>
+                        <p id="totalItems" class="text-2xl font-bold text-pink-600">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <p class="text-sm text-gray-600">Stock Bajo</p>
+                        <p id="lowStock" class="text-2xl font-bold text-red-600">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <p class="text-sm text-gray-600">Valor Total</p>
+                        <p id="totalValue" class="text-2xl font-bold text-green-600">$0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
+            <div class="stock-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Stock Óptimo</p>
+                        <p id="optimalStock" class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stock-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Stock Medio</p>
+                        <p id="mediumStock" class="text-2xl font-bold text-yellow-600">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stock-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Stock Bajo</p>
+                        <p id="lowStockCount" class="text-2xl font-bold text-red-600">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-circle text-red-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stock-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-gray-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Sin Stock</p>
+                        <p id="noStock" class="text-2xl font-bold text-gray-600">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-times-circle text-gray-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="Código o descripción..." 
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                    <select id="categoryFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                        <option value="">Todas las categorías</option>
+                        <option value="CERVEZAS">CERVEZAS</option>
+                        <option value="VINOS">VINOS</option>
+                        <option value="APERITIVOS">APERITIVOS</option>
+                        <option value="WHISKY">WHISKY</option>
+                        <option value="GASEOSAS">GASEOSAS</option>
+                        <option value="AGUAS">AGUAS</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nivel de Stock</label>
+                    <select id="stockFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                        <option value="">Todos los niveles</option>
+                        <option value="high">Stock Óptimo</option>
+                        <option value="medium">Stock Medio</option>
+                        <option value="low">Stock Bajo</option>
+                        <option value="critical">Sin Stock</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">UM</label>
+                    <select id="umFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                        <option value="">Todas las UMs</option>
+                        <option value="UN">UN</option>
+                        <option value="CJ">CJ</option>
+                        <option value="LT">LT</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="clearFilters" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-times mr-2"></i>
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Table -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-list mr-2 text-pink-600"></i>
+                    Inventario Actual
+                </h3>
+                <div class="flex items-center space-x-2">
+                    <span id="loadingIndicator" class="hidden text-sm text-gray-500">
+                        <i class="fas fa-spinner fa-spin mr-1"></i> Cargando...
+                    </span>
+                    <span id="stockCount" class="text-sm text-gray-600">0 artículos</span>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Código</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Descripción</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Categoría</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Stock Actual</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Und/Caja</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Cajas Disp.</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Estado</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Lotes</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTable" class="divide-y divide-gray-200">
+                        <!-- Las filas se cargarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-12">
+            <i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600">No se encontraron artículos</p>
+        </div>
+    </div>
+
+    <!-- Stock Movement Modal -->
+    <div id="movementModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800">Agregar Stock</h3>
+                    <button id="closeMovementModal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="movementForm" class="p-6 space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Artículo *</label>
+                    <select id="movementArticle" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                        <option value="">Seleccionar artículo</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad *</label>
+                        <input type="number" id="movementQuantity" step="1" min="1" required 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Precio Unitario ($) *</label>
+                        <input type="number" id="movementPrice" step="0.01" min="0.01" required 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Número de Lote</label>
+                    <input type="text" id="movementLot" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                           placeholder="Ej: LOTE-001">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                    <textarea id="movementNotes" rows="3" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                              placeholder="Notas sobre el movimiento..."></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                    <button type="button" id="cancelMovement" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        Agregar Stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stock Chart -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6">
+                <i class="fas fa-chart-line text-pink-600 mr-2"></i>
+                Análisis de Stock
+            </h3>
+            <div id="stockChart" style="height: 400px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:3000';
+        
+        // Variables globales
+        let stockItems = [];
+        let allArticles = [];
+
+        // Elementos del DOM
+        const elements = {
+            stockTable: document.getElementById('stockTable'),
+            emptyState: document.getElementById('emptyState'),
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            stockCount: document.getElementById('stockCount'),
+            totalItems: document.getElementById('totalItems'),
+            lowStock: document.getElementById('lowStock'),
+            totalValue: document.getElementById('totalValue'),
+            optimalStock: document.getElementById('optimalStock'),
+            mediumStock: document.getElementById('mediumStock'),
+            lowStockCount: document.getElementById('lowStockCount'),
+            noStock: document.getElementById('noStock'),
+            movementModal: document.getElementById('movementModal'),
+            movementForm: document.getElementById('movementForm'),
+            movementArticle: document.getElementById('movementArticle'),
+            movementQuantity: document.getElementById('movementQuantity'),
+            movementPrice: document.getElementById('movementPrice'),
+            movementLot: document.getElementById('movementLot'),
+            movementNotes: document.getElementById('movementNotes'),
+            searchInput: document.getElementById('searchInput'),
+            categoryFilter: document.getElementById('categoryFilter'),
+            stockFilter: document.getElementById('stockFilter'),
+            umFilter: document.getElementById('umFilter'),
+            clearFilters: document.getElementById('clearFilters')
+        };
+
+        // Event Listeners
+        document.getElementById('newMovementBtn').addEventListener('click', openMovementModal);
+        document.getElementById('refreshBtn').addEventListener('click', loadStockData);
+        document.getElementById('closeMovementModal').addEventListener('click', closeMovementModal);
+        document.getElementById('cancelMovement').addEventListener('click', closeMovementModal);
+        elements.movementForm.addEventListener('submit', handleMovementSubmit);
+        elements.searchInput.addEventListener('input', filterStock);
+        elements.categoryFilter.addEventListener('change', filterStock);
+        elements.stockFilter.addEventListener('change', filterStock);
+        elements.umFilter.addEventListener('change', filterStock);
+        elements.clearFilters.addEventListener('click', clearFilters);
+
+        // Funciones de API
+        async function fetchData(endpoint) {
+            try {
+                const response = await fetch(`${API}${endpoint}`);
+                const data = await response.json();
+                return data.success ? data.data : [];
+            } catch (error) {
+                console.error(`Error al cargar ${endpoint}:`, error);
+                return [];
+            }
+        }
+
+        async function loadStockData() {
+            elements.loadingIndicator.classList.remove('hidden');
+            
+            try {
+                // Cargar stock general
+                stockItems = await fetchData('/api/stock');
+                
+                // Cargar todos los artículos para el modal
+                allArticles = await fetchData('/api/articles');
+                
+                renderStockTable();
+                updateStats();
+                createStockChart();
+                
+                showNotification('Stock actualizado correctamente', 'success');
+            } catch (error) {
+                console.error('Error al cargar stock:', error);
+                showNotification('Error al cargar el stock', 'error');
+            } finally {
+                elements.loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        async function addStock(articuloKey, cantidad, precioUnitario, numeroLote, observaciones) {
+            try {
+                const response = await fetch(`${API}/api/agregar-stock`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        articuloKey,
+                        cantidad,
+                        precioUnitario,
+                        numeroLote,
+                        observaciones
+                    })
+                });
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error al agregar stock:', error);
+                return { success: false, message: 'Error al conectar con el servidor' };
+            }
+        }
+
+        // Renderizar tabla de stock
+        function renderStockTable(filteredItems = stockItems) {
+            const tbody = elements.stockTable;
+            
+            if (filteredItems.length === 0) {
+                elements.emptyState.classList.remove('hidden');
+                tbody.innerHTML = '';
+                elements.stockCount.textContent = '0 artículos';
+                return;
+            }
+            
+            elements.emptyState.classList.add('hidden');
+            elements.stockCount.textContent = `${filteredItems.length} artículo${filteredItems.length !== 1 ? 's' : ''}`;
+            
+            tbody.innerHTML = filteredItems.map(item => {
+                const cajasDisponibles = item.undxCaja > 0 ? 
+                    Math.floor(item.StockTotal / item.undxCaja) : 0;
+                
+                const stockLevel = getStockLevel(item.StockTotal, item.undxCaja * 10); // Usamos 10 cajas como mínimo
+                const stockLevelText = getStockLevelText(stockLevel);
+                const stockBadgeClass = getStockBadgeClass(stockLevel);
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">${item.idArticulos}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">${item.descripcionArticulos}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${item.Categoria || 'N/A'}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">${item.StockTotal}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500 text-center">${item.undxCaja || 1}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900 text-center">${cajasDisponibles}</td>
+                        <td class="px-6 py-4">
+                            <span class="stock-badge ${stockBadgeClass}">
+                                ${stockLevelText}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 text-center">${item.CantidadLotes}</td>
+                        <td class="px-6 py-4">
+                            <div class="flex space-x-2">
+                                <button onclick="viewStockDetails(${item.ArticuloKey})" class="text-blue-600 hover:text-blue-800" title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="addStockToArticle(${item.ArticuloKey})" class="text-green-600 hover:text-green-800" title="Agregar stock">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Obtener nivel de stock
+        function getStockLevel(currentStock, minStock) {
+            if (currentStock === 0) return 'critical';
+            if (currentStock <= minStock * 0.3) return 'low';
+            if (currentStock <= minStock) return 'medium';
+            return 'high';
+        }
+
+        // Obtener texto del nivel de stock
+        function getStockLevelText(level) {
+            switch(level) {
+                case 'high': return 'Óptimo';
+                case 'medium': return 'Medio';
+                case 'low': return 'Bajo';
+                case 'critical': return 'Sin Stock';
+                default: return 'Desconocido';
+            }
+        }
+
+        // Obtener clase CSS para el badge de stock
+        function getStockBadgeClass(level) {
+            switch(level) {
+                case 'high': return 'stock-sufficient';
+                case 'medium': return 'stock-low';
+                case 'low': return 'stock-out';
+                case 'critical': return 'stock-out';
+                default: return 'stock-out';
+            }
+        }
+
+        // Filtros
+        function filterStock() {
+            const searchTerm = elements.searchInput.value.toLowerCase();
+            const categoryFilter = elements.categoryFilter.value;
+            const stockFilter = elements.stockFilter.value;
+            const umFilter = elements.umFilter.value;
+            
+            const filtered = stockItems.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    item.idArticulos.toLowerCase().includes(searchTerm) ||
+                    item.descripcionArticulos.toLowerCase().includes(searchTerm);
+                
+                const matchesCategory = !categoryFilter || item.Categoria === categoryFilter;
+                const matchesUM = !umFilter || item.UM === umFilter;
+                
+                let matchesStock = true;
+                if (stockFilter) {
+                    const level = getStockLevel(item.StockTotal, item.undxCaja * 10);
+                    matchesStock = level === stockFilter;
+                }
+                
+                return matchesSearch && matchesCategory && matchesStock && matchesUM;
+            });
+            
+            renderStockTable(filtered);
+        }
+
+        function clearFilters() {
+            elements.searchInput.value = '';
+            elements.categoryFilter.value = '';
+            elements.stockFilter.value = '';
+            elements.umFilter.value = '';
+            renderStockTable();
+        }
+
+        // Modal de movimiento de stock
+        function openMovementModal() {
+            // Cargar artículos disponibles
+            const select = elements.movementArticle;
+            select.innerHTML = '<option value="">Seleccionar artículo</option>';
+            allArticles.forEach(article => {
+                const option = document.createElement('option');
+                option.value = article.ArticuloKey;
+                option.textContent = `${article.idArticulos} - ${article.descripcionArticulos}`;
+                select.appendChild(option);
+            });
+            
+            elements.movementModal.classList.remove('hidden');
+            elements.movementModal.classList.add('flex');
+            
+            anime({
+                targets: '#movementModal .bg-white',
+                scale: [0.9, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutQuad'
+            });
+        }
+
+        function closeMovementModal() {
+            anime({
+                targets: '#movementModal .bg-white',
+                scale: [1, 0.9],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInQuad',
+                complete: () => {
+                    elements.movementModal.classList.add('hidden');
+                    elements.movementModal.classList.remove('flex');
+                    elements.movementForm.reset();
+                }
+            });
+        }
+
+        async function handleMovementSubmit(e) {
+            e.preventDefault();
+            
+            const articuloKey = parseInt(elements.movementArticle.value);
+            const cantidad = parseFloat(elements.movementQuantity.value);
+            const precioUnitario = parseFloat(elements.movementPrice.value);
+            const numeroLote = elements.movementLot.value;
+            const observaciones = elements.movementNotes.value;
+            
+            if (!articuloKey || !cantidad || !precioUnitario) {
+                showNotification('Complete todos los campos requeridos', 'error');
+                return;
+            }
+            
+            const result = await addStock(articuloKey, cantidad, precioUnitario, numeroLote, observaciones);
+            
+            if (result.success) {
+                showNotification('Stock agregado correctamente', 'success');
+                closeMovementModal();
+                // Recargar datos
+                setTimeout(loadStockData, 500);
+            } else {
+                showNotification('Error: ' + result.message, 'error');
+            }
+        }
+
+        // Funciones auxiliares
+        function addStockToArticle(articuloKey) {
+            const article = allArticles.find(a => a.ArticuloKey === articuloKey);
+            if (article) {
+                openMovementModal();
+                // Pre-seleccionar el artículo
+                elements.movementArticle.value = articuloKey;
+                // Sugerir un número de lote
+                elements.movementLot.value = `LOTE-${article.idArticulos}-${new Date().getTime().toString().slice(-4)}`;
+            }
+        }
+
+        async function viewStockDetails(articuloKey) {
+            try {
+                const response = await fetch(`${API}/api/stock-consolidado/${articuloKey}`);
+                const data = await response.json();
+                
+                if (data.success && data.data.length > 0) {
+                    const article = data.data[0];
+                    let detailsText = `Detalles de stock: ${article.Codigo} - ${article.Descripcion}\n\n`;
+                    detailsText += `Stock total: ${data.data.reduce((sum, item) => sum + item.Unidades, 0)} unidades\n\n`;
+                    detailsText += 'Lotes disponibles:\n';
+                    
+                    data.data.forEach(lote => {
+                        detailsText += `- ${lote.FCProveedorLote}: ${lote.Unidades} unidades (${lote.Sociedad})\n`;
+                    });
+                    
+                    alert(detailsText);
+                } else {
+                    alert('No hay información detallada de stock para este artículo');
+                }
+            } catch (error) {
+                console.error('Error al obtener detalles:', error);
+                alert('Error al cargar los detalles del stock');
+            }
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            const totalItems = stockItems.length;
+            const lowStockItems = stockItems.filter(item => 
+                getStockLevel(item.StockTotal, item.undxCaja * 10) === 'low'
+            ).length;
+            
+            // Para el valor total, necesitaríamos información de costos que no está disponible
+            // en el endpoint actual, así que mostramos un valor estimado
+            const totalValue = stockItems.reduce((sum, item) => 
+                sum + (item.StockTotal * 5), 0); // Valor estimado de $5 por unidad
+            
+            const optimalStock = stockItems.filter(item => 
+                getStockLevel(item.StockTotal, item.undxCaja * 10) === 'high'
+            ).length;
+            const mediumStock = stockItems.filter(item => 
+                getStockLevel(item.StockTotal, item.undxCaja * 10) === 'medium'
+            ).length;
+            const lowStockCount = stockItems.filter(item => 
+                getStockLevel(item.StockTotal, item.undxCaja * 10) === 'low'
+            ).length;
+            const noStock = stockItems.filter(item => 
+                getStockLevel(item.StockTotal, item.undxCaja * 10) === 'critical'
+            ).length;
+            
+            elements.totalItems.textContent = totalItems;
+            elements.lowStock.textContent = lowStockItems;
+            elements.totalValue.textContent = '$' + totalValue.toFixed(2);
+            elements.optimalStock.textContent = optimalStock;
+            elements.mediumStock.textContent = mediumStock;
+            elements.lowStockCount.textContent = lowStockCount;
+            elements.noStock.textContent = noStock;
+        }
+
+        // Crear gráfico de stock
+        function createStockChart() {
+            if (stockItems.length === 0) {
+                document.getElementById('stockChart').innerHTML = '<p class="text-center text-gray-500">No hay datos para mostrar</p>';
+                return;
+            }
+            
+            // Tomar solo los primeros 10 artículos para el gráfico
+            const chartItems = stockItems.slice(0, 10);
+            
+            const data = [{
+                x: chartItems.map(item => item.idArticulos),
+                y: chartItems.map(item => item.StockTotal),
+                type: 'bar',
+                name: 'Stock Actual',
+                marker: {
+                    color: chartItems.map(item => {
+                        const level = getStockLevel(item.StockTotal, item.undxCaja * 10);
+                        switch(level) {
+                            case 'high': return '#10b981';
+                            case 'medium': return '#f59e0b';
+                            case 'low': return '#ef4444';
+                            case 'critical': return '#7f1d1d';
+                            default: return '#6b7280';
+                        }
+                    })
+                }
+            }];
+
+            const layout = {
+                title: {
+                    text: 'Stock Actual por Artículo (Top 10)',
+                    font: { size: 16, color: '#374151' }
+                },
+                xaxis: { 
+                    title: 'Artículos',
+                    tickangle: -45
+                },
+                yaxis: { 
+                    title: 'Cantidad (unidades)'
+                },
+                margin: { t: 50, b: 100, l: 50, r: 50 },
+                plot_bgcolor: '#f9fafb',
+                paper_bgcolor: '#ffffff'
+            };
+
+            Plotly.newPlot('stockChart', data, layout, {responsive: true});
+        }
+
+        // Notificaciones
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStockData();
+            
+            // Animación inicial
+            anime({
+                targets: '.fade-in',
+                opacity: [0, 1],
+                translateY: [30, 0],
+                duration: 600,
+                delay: anime.stagger(100),
+                easing: 'easeOutQuad'
+            });
+        });
+    </script>
+</body>
+</html>
