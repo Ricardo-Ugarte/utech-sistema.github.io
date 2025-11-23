@@ -1,0 +1,36 @@
+# SISTEMA DE GESTIÓN DE BEBIDAS
+
+## 📋 DESCRIPCIÓN
+Sistema integral para gestión de bebidas con control de:
+- ✅ Stock e inventario
+- ✅ Ventas y clientes  
+- ✅ Compras y proveedores
+- ✅ Reportes y análisis
+
+## 🚀 CÓMO USAR
+
+### OPCIÓN 1 (Recomendada):
+Haz doble clic en: **"Sistema Gestión Bebidas.lnk"**
+
+### OPCIÓN 2:
+Haz doble clic en: **"Iniciar Sistema.bat"**
+
+## 🌐 ACCESO AL SISTEMA
+Una vez iniciado, abre tu navegador en:
+**http://localhost:3000**
+
+## 📊 MÓDULOS DISPONIBLES
+- Dashboard principal
+- Gestión de Artículos
+- Control de Stock
+- Módulo de Ventas
+- Sistema de Costeo
+- Reportes y estadísticas
+
+## ⚠️ TROUBLESHOOTING
+- Si el puerto 3000 está en uso, cierra otras ventanas del sistema
+- Asegúrate de tener conexión a internet para la base de datos Azure
+- Para cerrar: Cierra la ventana de comandos
+
+## 📞 SOPORTE
+Desarrollado por: Ricardo Ugarte

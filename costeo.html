@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Costeo de Compras - Sistema Bebidas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { 
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; 
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      border: 1px solid rgba(226, 232, 240, 0.7);
+    }
+    .modal-bg { 
+      background: rgba(0,0,0,.4); 
+    }
+    .table-header {
+      background: linear-gradient(to right, #f8fafc, #f1f5f9);
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .btn-primary {
+      background: linear-gradient(to right, #4f46e5, #7c73e6);
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(to right, #4338ca, #6d63d8);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(79, 70, 229, 0.2);
+    }
+    .btn-success {
+      background: linear-gradient(to right, #10b981, #34d399);
+      transition: all 0.2s ease;
+    }
+    .btn-success:hover {
+      background: linear-gradient(to right, #059669, #10b981);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+    }
+    .input-field {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    .input-field:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .status-connected {
+      background-color: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+    .article-row:hover {
+      background-color: #f8fafc;
+    }
+    .total-factura {
+      background: linear-gradient(135deg, #4f46e5, #7c73e6);
+      color: white;
+      border-radius: 10px;
+    }
+    .search-container {
+      position: relative;
+    }
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      z-index: 50;
+      margin-top: 4px;
+    }
+    .search-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background-color 0.2s;
+    }
+    .search-item:hover {
+      background-color: #f9fafb;
+    }
+    .search-item:last-child {
+      border-bottom: none;
+    }
+    .search-highlight {
+      background-color: #fef3c7;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+    .selected-article {
+      background: #eff6ff;
+      border: 1px solid #3b82f6;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .stock-info {
+      background: #f0f9ff;
+      border: 1px solid #7dd3fc;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- NAV -->
+  <nav class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button onclick="window.location.href='dashboard.html'" class="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+          <i class="fas fa-arrow-left mr-2"></i> Volver al Dashboard
+        </button>
+        <div class="h-6 w-px bg-gray-300"></div>
+        <div class="flex items-center">
+          <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600 mr-3">
+            <i class="fas fa-file-invoice-dollar"></i>
+          </div>
+          <h1 class="font-bold text-xl text-gray-900">Costeo de Compras</h1>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div id="connectionStatus" class="flex items-center text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full">
+          <span class="status-indicator status-connected"></span>
+          Backend conectado
+        </div>
+        <button id="logoutBtn" class="text-gray-600 hover:text-gray-900 transition-colors">
+          <i class="fas fa-sign-out-alt mr-1"></i> Salir
+        </button>
+      </div>
+    </div>
+  </nav>
+
+<!-- Agregar este código al final del body en cada página HTML -->
+
+<!-- Chatbot Widget -->
+<div id="chatbotWidget" class="fixed bottom-6 right-6 z-40">
+  <button id="chatbotToggle" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110">
+    <i class="fas fa-robot text-xl"></i>
+  </button>
+</div>
+
+<!-- Chatbot Modal -->
+<div id="chatbotModal" class="fixed bottom-24 right-6 w-80 h-96 bg-white rounded-xl shadow-2xl z-50 hidden flex-col border border-gray-200">
+  <!-- Header -->
+  <div class="bg-indigo-600 text-white p-4 rounded-t-xl flex justify-between items-center">
+    <div class="flex items-center">
+      <i class="fas fa-robot mr-2"></i>
+      <span class="font-semibold">Asistente Virtual</span>
+    </div>
+    <button id="chatbotClose" class="text-white hover:text-gray-200">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  
+  <!-- Chat Messages -->
+  <div id="chatbotMessages" class="flex-1 p-4 overflow-y-auto bg-gray-50">
+    <div class="chat-message bot-message mb-4">
+      <div class="bg-white rounded-lg p-3 shadow-sm max-w-[85%]">
+        <p class="text-sm text-gray-700">¡Hola! Soy tu asistente virtual. Puedo ayudarte con consultas sobre:</p>
+        <ul class="text-xs text-gray-600 mt-2 list-disc pl-4">
+          <li>Stock de productos</li>
+          <li>Ventas recientes</li>
+          <li>Compras y costeo</li>
+          <li>Información de artículos</li>
+        </ul>
+        <p class="text-xs text-gray-500 mt-2">¿En qué puedo ayudarte?</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Input Area -->
+  <div class="p-3 border-t border-gray-200">
+    <div class="flex space-x-2">
+      <input 
+        id="chatbotInput" 
+        type="text" 
+        placeholder="Escribe tu consulta..." 
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+      >
+      <button id="chatbotSend" class="bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 transition-colors">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+    <div class="mt-2 flex flex-wrap gap-1">
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Qué productos tienen stock bajo?">
+        Stock bajo
+      </button>
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Cuáles son las ventas de hoy?">
+        Ventas hoy
+      </button>
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Qué artículos hay en el sistema?">
+        Listar artículos
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .chat-message {
+    display: flex;
+    margin-bottom: 1rem;
+  }
+  
+  .user-message {
+    justify-content: flex-end;
+  }
+  
+  .bot-message {
+    justify-content: flex-start;
+  }
+  
+  .user-message > div {
+    background-color: #e0e7ff;
+    color: #3730a3;
+  }
+  
+  .bot-message > div {
+    background-color: white;
+    color: #374151;
+  }
+  
+  .quick-question {
+    transition: all 0.2s ease;
+  }
+  
+  .quick-question:hover {
+    transform: translateY(-1px);
+  }
+  
+  #chatbotModal {
+    transition: all 0.3s ease;
+  }
+  
+  #chatbotModal.show {
+    display: flex !important;
+    animation: slideInUp 0.3s ease;
+  }
+  
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const API = 'http://localhost:3000';
+  
+  // Elementos del DOM
+  const chatbotToggle = document.getElementById('chatbotToggle');
+  const chatbotModal = document.getElementById('chatbotModal');
+  const chatbotClose = document.getElementById('chatbotClose');
+  const chatbotMessages = document.getElementById('chatbotMessages');
+  const chatbotInput = document.getElementById('chatbotInput');
+  const chatbotSend = document.getElementById('chatbotSend');
+  const quickQuestions = document.querySelectorAll('.quick-question');
+  
+  // Estado del chatbot
+  let isChatbotOpen = false;
+  
+  // Funciones de utilidad
+  function addMessage(message, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'} mb-4`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = `rounded-lg p-3 shadow-sm max-w-[85%] ${isUser ? 'bg-indigo-100 text-indigo-800' : 'bg-white text-gray-700'}`;
+    
+    // Si el mensaje contiene HTML, lo insertamos directamente
+    if (typeof message === 'string' && message.includes('<')) {
+      messageContent.innerHTML = message;
+    } else {
+      messageContent.innerHTML = `<p class="text-sm">${message}</p>`;
+    }
+    
+    messageDiv.appendChild(messageContent);
+    chatbotMessages.appendChild(messageDiv);
+    
+    // Scroll al final
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+  }
+  
+  function showTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message bot-message mb-4';
+    typingDiv.id = 'typing-indicator';
+    
+    const typingContent = document.createElement('div');
+    typingContent.className = 'bg-white rounded-lg p-3 shadow-sm max-w-[85%]';
+    typingContent.innerHTML = `
+      <div class="flex space-x-1">
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+      </div>
+    `;
+    
+    typingDiv.appendChild(typingContent);
+    chatbotMessages.appendChild(typingDiv);
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    
+    return typingDiv;
+  }
+  
+  function removeTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) {
+      typingIndicator.remove();
+    }
+  }
+  
+  // Procesar consultas del usuario
+  async function processQuery(query) {
+    const typingIndicator = showTypingIndicator();
+    
+    try {
+      // Normalizar la consulta
+      const normalizedQuery = query.toLowerCase().trim();
+      
+      // Detectar el tipo de consulta
+      if (normalizedQuery.includes('stock') || normalizedQuery.includes('inventario')) {
+        if (normalizedQuery.includes('bajo') || normalizedQuery.includes('poco')) {
+          await handleLowStockQuery();
+        } else if (normalizedQuery.includes('total') || normalizedQuery.includes('general')) {
+          await handleTotalStockQuery();
+        } else {
+          await handleStockQuery(normalizedQuery);
+        }
+      } else if (normalizedQuery.includes('venta') || normalizedQuery.includes('ventas')) {
+        if (normalizedQuery.includes('hoy') || normalizedQuery.includes('hoy')) {
+          await handleTodaySalesQuery();
+        } else if (normalizedQuery.includes('reciente')) {
+          await handleRecentSalesQuery();
+        } else {
+          await handleSalesQuery();
+        }
+      } else if (normalizedQuery.includes('compra') || normalizedQuery.includes('compras') || normalizedQuery.includes('costeo')) {
+        await handlePurchasesQuery();
+      } else if (normalizedQuery.includes('artículo') || normalizedQuery.includes('artículos') || normalizedQuery.includes('producto')) {
+        await handleArticlesQuery();
+      } else if (normalizedQuery.includes('hola') || normalizedQuery.includes('help') || normalizedQuery.includes('ayuda')) {
+        showHelp();
+      } else {
+        addMessage("Lo siento, no entiendo tu consulta. Puedo ayudarte con información sobre stock, ventas, compras y artículos. ¿Podrías reformular tu pregunta?");
+      }
+    } catch (error) {
+      console.error('Error procesando consulta:', error);
+      addMessage("Lo siento, ha ocurrido un error al procesar tu consulta. Por favor, intenta de nuevo.");
+    } finally {
+      removeTypingIndicator();
+    }
+  }
+  
+  // Manejar consultas de stock bajo
+  async function handleLowStockQuery() {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const lowStockItems = data.data.filter(item => 
+          item.EstadoStock === 'STOCK_BAJO' || item.EstadoStock === 'SIN_STOCK'
+        );
+        
+        if (lowStockItems.length > 0) {
+          let message = `<p class="font-semibold text-sm mb-2">Productos con stock bajo o sin stock:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          
+          lowStockItems.forEach(item => {
+            const status = item.EstadoStock === 'SIN_STOCK' ? 
+              '<span class="text-red-500 font-medium">SIN STOCK</span>' : 
+              '<span class="text-yellow-500 font-medium">STOCK BAJO</span>';
+            
+            message += `<li>${item.idArticulos} - ${item.descripcionArticulos}: ${item.StockTotal} unidades ${status}</li>`;
+          });
+          
+          message += `</ul>`;
+          message += `<p class="text-xs text-gray-500 mt-2">Total: ${lowStockItems.length} productos</p>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("¡Excelente! No hay productos con stock bajo en este momento.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de stock. Intenta nuevamente.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock bajo:', error);
+      addMessage("Error al consultar el stock bajo. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de stock total
+  async function handleTotalStockQuery() {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const totalItems = data.data.length;
+        const totalStock = data.data.reduce((sum, item) => sum + item.StockTotal, 0);
+        const itemsWithStock = data.data.filter(item => item.StockTotal > 0).length;
+        const itemsWithoutStock = data.data.filter(item => item.StockTotal === 0).length;
+        
+        let message = `<p class="font-semibold text-sm mb-2">Resumen general de stock:</p>`;
+        message += `<div class="text-xs space-y-1">`;
+        message += `<p>• Total de artículos: ${totalItems}</p>`;
+        message += `<p>• Stock total: ${totalStock} unidades</p>`;
+        message += `<p>• Artículos con stock: ${itemsWithStock}</p>`;
+        message += `<p>• Artículos sin stock: ${itemsWithoutStock}</p>`;
+        message += `</div>`;
+        
+        addMessage(message);
+      } else {
+        addMessage("No se pudo obtener la información de stock general.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock total:', error);
+      addMessage("Error al consultar el stock general. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de stock específicas
+  async function handleStockQuery(query) {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        // Buscar productos que coincidan con la consulta
+        const searchTerm = query.replace('stock', '').trim();
+        const matchingItems = data.data.filter(item => 
+          item.idArticulos.toLowerCase().includes(searchTerm) || 
+          item.descripcionArticulos.toLowerCase().includes(searchTerm)
+        );
+        
+        if (matchingItems.length > 0) {
+          let message = `<p class="font-semibold text-sm mb-2">Resultados de stock:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          
+          matchingItems.slice(0, 5).forEach(item => {
+            const status = item.EstadoStock === 'SIN_STOCK' ? 
+              'text-red-500' : 
+              item.EstadoStock === 'STOCK_BAJO' ? 'text-yellow-500' : 'text-green-500';
+            
+            message += `<li>${item.idArticulos} - ${item.descripcionArticulos}: <span class="${status} font-medium">${item.StockTotal} unidades</span></li>`;
+          });
+          
+          message += `</ul>`;
+          
+          if (matchingItems.length > 5) {
+            message += `<p class="text-xs text-gray-500 mt-1">... y ${matchingItems.length - 5} productos más</p>`;
+          }
+          
+          addMessage(message);
+        } else {
+          addMessage(`No encontré productos que coincidan con "${searchTerm}". ¿Podrías intentar con otro término?`);
+        }
+      } else {
+        addMessage("No se pudo obtener la información de stock.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock:', error);
+      addMessage("Error al consultar el stock. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de ventas de hoy
+  async function handleTodaySalesQuery() {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`${API}/api/ventas?fechaDesde=${today}&fechaHasta=${today}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Ventas de hoy (${today}):</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas: ${totalSales}</p>`;
+          message += `<p>• Monto total: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          if (data.data.length <= 5) {
+            message += `<p class="text-xs font-medium mt-2">Detalles:</p>`;
+            message += `<ul class="text-xs space-y-1">`;
+            data.data.forEach(sale => {
+              message += `<li>Venta #${sale.VentaKey} - ${sale.Cliente}: $${(sale.TotalVenta || 0).toFixed(2)}</li>`;
+            });
+            message += `</ul>`;
+          }
+          
+          addMessage(message);
+        } else {
+          addMessage(`No hay ventas registradas para hoy (${today}).`);
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas de hoy.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas de hoy:', error);
+      addMessage("Error al consultar las ventas de hoy. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de ventas recientes
+  async function handleRecentSalesQuery() {
+    try {
+      // Obtener ventas de los últimos 7 días
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      const response = await fetch(`${API}/api/ventas?fechaDesde=${startDateStr}&fechaHasta=${endDateStr}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Ventas recientes (últimos 7 días):</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas: ${totalSales}</p>`;
+          message += `<p>• Monto total: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          // Mostrar las 3 ventas más recientes
+          const recentSales = data.data.slice(0, 3);
+          message += `<p class="text-xs font-medium mt-2">Ventas más recientes:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          recentSales.forEach(sale => {
+            const date = new Date(sale.Fecha).toLocaleDateString('es-ES');
+            message += `<li>${date} - Venta #${sale.VentaKey}: $${(sale.TotalVenta || 0).toFixed(2)}</li>`;
+          });
+          message += `</ul>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("No hay ventas registradas en los últimos 7 días.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas recientes.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas recientes:', error);
+      addMessage("Error al consultar las ventas recientes. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas generales de ventas
+  async function handleSalesQuery() {
+    try {
+      const response = await fetch(`${API}/api/ventas`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Resumen de ventas:</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas registradas: ${totalSales}</p>`;
+          message += `<p>• Monto total histórico: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("No hay ventas registradas en el sistema.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas:', error);
+      addMessage("Error al consultar las ventas. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de compras
+  async function handlePurchasesQuery() {
+    addMessage("La funcionalidad de consulta de compras está en desarrollo. Por ahora, puedes revisar las compras en la sección de 'Costeo de Compras'.");
+  }
+  
+  // Manejar consultas de artículos
+  async function handleArticlesQuery() {
+    try {
+      const response = await fetch(`${API}/api/articles`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const totalArticles = data.data.length;
+        const categories = [...new Set(data.data.map(item => item.Categoria).filter(Boolean))];
+        
+        let message = `<p class="font-semibold text-sm mb-2">Resumen de artículos:</p>`;
+        message += `<div class="text-xs space-y-1">`;
+        message += `<p>• Total de artículos: ${totalArticles}</p>`;
+        
+        if (categories.length > 0) {
+          message += `<p>• Categorías: ${categories.join(', ')}</p>`;
+        }
+        
+        message += `</div>`;
+        
+        // Mostrar algunos artículos como ejemplo
+        const sampleArticles = data.data.slice(0, 3);
+        message += `<p class="text-xs font-medium mt-2">Algunos artículos:</p>`;
+        message += `<ul class="text-xs space-y-1">`;
+        sampleArticles.forEach(article => {
+          message += `<li>${article.idArticulos} - ${article.descripcionArticulos} (${article.Categoria || 'Sin categoría'})</li>`;
+        });
+        message += `</ul>`;
+        
+        if (totalArticles > 3) {
+          message += `<p class="text-xs text-gray-500 mt-1">... y ${totalArticles - 3} artículos más</p>`;
+        }
+        
+        addMessage(message);
+      } else {
+        addMessage("No hay artículos registrados en el sistema.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo artículos:', error);
+      addMessage("Error al consultar los artículos. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Mostrar ayuda
+  function showHelp() {
+    const helpMessage = `
+      <p class="font-semibold text-sm mb-2">Puedo ayudarte con:</p>
+      <ul class="text-xs space-y-1 list-disc pl-4">
+        <li><strong>Consultas de stock:</strong> "stock bajo", "stock total", "stock de [producto]"</li>
+        <li><strong>Consultas de ventas:</strong> "ventas de hoy", "ventas recientes", "resumen de ventas"</li>
+        <li><strong>Consultas de compras:</strong> "compras recientes", "costeo"</li>
+        <li><strong>Consultas de artículos:</strong> "listar artículos", "artículos por categoría"</li>
+      </ul>
+      <p class="text-xs text-gray-500 mt-2">También puedes usar los botones de consulta rápida.</p>
+    `;
+    
+    addMessage(helpMessage);
+  }
+  
+  // Event Listeners
+  chatbotToggle.addEventListener('click', function() {
+    isChatbotOpen = !isChatbotOpen;
+    
+    if (isChatbotOpen) {
+      chatbotModal.classList.remove('hidden');
+      chatbotModal.classList.add('show');
+      chatbotInput.focus();
+    } else {
+      chatbotModal.classList.remove('show');
+      setTimeout(() => {
+        chatbotModal.classList.add('hidden');
+      }, 300);
+    }
+  });
+  
+  chatbotClose.addEventListener('click', function() {
+    isChatbotOpen = false;
+    chatbotModal.classList.remove('show');
+    setTimeout(() => {
+      chatbotModal.classList.add('hidden');
+    }, 300);
+  });
+  
+  chatbotSend.addEventListener('click', function() {
+    sendMessage();
+  });
+  
+  chatbotInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
+  
+  quickQuestions.forEach(button => {
+    button.addEventListener('click', function() {
+      const question = this.getAttribute('data-question');
+      chatbotInput.value = question;
+      sendMessage();
+    });
+  });
+  
+  function sendMessage() {
+    const message = chatbotInput.value.trim();
+    
+    if (message) {
+      addMessage(message, true);
+      chatbotInput.value = '';
+      
+      // Procesar la consulta después de un pequeño delay
+      setTimeout(() => {
+        processQuery(message);
+      }, 500);
+    }
+  }
+  
+  // Cerrar el chatbot al hacer clic fuera de él
+  document.addEventListener('click', function(e) {
+    if (isChatbotOpen && 
+        !chatbotModal.contains(e.target) && 
+        !chatbotToggle.contains(e.target)) {
+      isChatbotOpen = false;
+      chatbotModal.classList.remove('show');
+      setTimeout(() => {
+        chatbotModal.classList.add('hidden');
+      }, 300);
+    }
+  });
+});
+</script>
+  <!-- CONTENIDO -->
+  <div class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+    <!-- Panel de factura -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-indigo-100 text-indigo-600">
+            <i class="fas fa-file-invoice"></i>
+          </div>
+          Datos de la Factura
+        </h2>
+        <div class="text-right total-factura px-6 py-4">
+          <p class="text-sm opacity-90">Total Factura</p>
+          <p id="totalFactura" class="text-3xl font-bold">$0.00</p>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Sociedad *</label>
+          <select id="sociedad" class="w-full input-field px-4 py-3">
+            <option value="">Cargando...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Proveedor *</label>
+          <select id="proveedor" class="w-full input-field px-4 py-3">
+            <option value="">Cargando...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Factura *</label>
+          <input id="fechaFactura" type="date" class="w-full input-field px-4 py-3" value="">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Recepción *</label>
+          <input id="fechaRecepcion" type="date" class="w-full input-field px-4 py-3" value="">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">N° Factura *</label>
+          <input id="numeroFactura" type="text" class="w-full input-field px-4 py-3" placeholder="0001-00000001">
+        </div>
+      </div>
+      
+      <div class="mt-6 pt-6 border-t border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Importes de Factura</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Importe Neto *</label>
+            <input id="importeNeto" type="number" step="0.01" class="w-full input-field px-4 py-3" value="0">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Gastos de Envío</label>
+            <input id="gastosEnvio" type="number" step="0.01" class="w-full input-field px-4 py-3" value="0">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Imp. Internos</label>
+            <input id="impuestosInternos" type="number" step="0.01" class="w-full input-field px-4 py-3" value="0">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">IVA C.F. (21%)</label>
+            <input id="ivaCf" type="number" step="0.01" class="w-full input-field px-4 py-3 bg-gray-50" value="0" readonly>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Percep. IVA</label>
+            <input id="percepcionIva" type="number" step="0.01" class="w-full input-field px-4 py-3" value="0">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Percep. IIBB</label>
+            <input id="percepcionIibb" type="number" step="0.01" class="w-full input-field px-4 py-3" value="0">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen y acciones -->
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Resumen de cálculos -->
+      <div class="card p-6 flex-1">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Resumen de Cálculos</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-500">Total Neto</p>
+            <p id="summaryNeto" class="text-xl font-bold text-gray-800">$0.00</p>
+          </div>
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-500">Total Impuestos</p>
+            <p id="summaryImpuestos" class="text-xl font-bold text-gray-800">$0.00</p>
+          </div>
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-500">Costo Total</p>
+            <p id="summaryCostoTotal" class="text-xl font-bold text-gray-800">$0.00</p>
+          </div>
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-500">Margen Promedio</p>
+            <p id="summaryMargen" class="text-xl font-bold text-gray-800">0.0%</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Botones de acción -->
+      <div class="flex flex-col gap-3">
+        <button id="addArticleBtn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center">
+          <i class="fas fa-plus mr-2"></i> Agregar Artículo
+        </button>
+        <button id="saveAllBtn" class="btn-success text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center">
+          <i class="fas fa-save mr-2"></i> Guardar Todo
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla de artículos -->
+    <div class="card overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <i class="fas fa-boxes text-indigo-500"></i>
+          Artículos en Factura
+        </h3>
+        <span id="articlesCount" class="bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full">
+          0 artículos
+        </span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead class="table-header">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artículo</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cant.</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Neto Unit.</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% II</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">II</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gastos Env.</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitad IVA</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Total</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PU</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Desp.</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="articlesTable" class="bg-white divide-y divide-gray-200">
+            <!-- filas -->
+          </tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="py-12 text-center text-gray-400">
+        <i class="fas fa-inbox text-4xl mb-3"></i>
+        <p class="text-lg">No hay artículos cargados para esta factura.</p>
+        <p class="text-sm mt-1">Haga clic en "Agregar Artículo" para comenzar.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL AGREGAR ARTÍCULO -->
+  <div id="articleModal" class="fixed inset-0 modal-bg hidden items-center justify-center z-50 p-4">
+    <div class="card w-full max-w-4xl overflow-hidden">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">Agregar Artículo a Factura</h3>
+        <button id="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+        <!-- formulario -->
+        <div class="p-6">
+          <form id="articleForm" class="space-y-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Buscar Artículo *</label>
+              <div class="search-container">
+                <div class="relative">
+                  <input 
+                    id="articuloSearch" 
+                    type="text" 
+                    class="w-full input-field px-4 py-3 pr-10" 
+                    placeholder="Escriba el nombre o código del artículo..."
+                    autocomplete="off"
+                  >
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <i class="fas fa-search text-gray-400"></i>
+                  </div>
+                </div>
+                <!-- Resultados de búsqueda -->
+                <div id="searchResults" class="search-results hidden"></div>
+              </div>
+              
+              <!-- Artículo seleccionado -->
+              <div id="selectedArticle" class="selected-article hidden">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900 text-lg" id="selectedArticleName"></h4>
+                    <div class="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <span><strong>Código:</strong> <span id="selectedArticleCode"></span></span>
+                      <span><strong>Unidad:</strong> <span id="selectedArticleUM"></span></span>
+                      <span><strong>Und/Caja:</strong> <span id="selectedArticleUndxCaja"></span></span>
+                    </div>
+                  </div>
+                  <button type="button" id="clearSelection" class="text-gray-400 hover:text-gray-600 ml-4">
+                    <i class="fas fa-times text-xl"></i>
+                  </button>
+                </div>
+                <!-- Información de Stock -->
+                <div id="stockInfo" class="stock-info hidden">
+                  <h5 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <i class="fas fa-boxes text-blue-500"></i>
+                    Información de Stock
+                  </h5>
+                  <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span class="text-gray-500">Stock actual:</span>
+                      <span id="stockActual" class="font-medium ml-2">-</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Stock después:</span>
+                      <span id="stockDespues" class="font-medium ml-2">-</span>
+                    </div>
+                  </div>
+                </div>
+                <input type="hidden" id="articuloKey" value="">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad *</label>
+                <input id="cantidad" type="number" step="0.01" class="w-full input-field px-4 py-3" value="1" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Neto Unitario *</label>
+                <input id="netoUnitario" type="number" step="0.01" class="w-full input-field px-4 py-3" value="0" required>
+              </div>
+            </div>
+             <div class="flex justify-end space-x-3 pt-4">
+              <button type="button" id="cancelArticle" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary text-white px-5 py-2.5 rounded-lg font-medium">
+                Agregar a la Lista
+              </button>
+            </div>
+          </form>
+        </div>
+        <!-- preview -->
+        <div class="bg-gray-50 p-6 border-l border-gray-200">
+          <h4 class="text-md font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fas fa-eye text-indigo-500"></i>
+            Vista Preliminar
+          </h4>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-500">Artículo:</span>
+              <span id="previewArticulo" class="font-medium text-gray-800 text-right">—</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Cantidad:</span>
+              <span id="previewCantidad" class="font-medium text-gray-800">0</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Neto unitario:</span>
+              <span id="previewNetoUnit" class="font-medium text-gray-800">$0.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">% II:</span>
+              <span id="previewPorcentajeII" class="font-medium text-gray-800">0%</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Neto x Imp Inter:</span>
+              <span id="previewImpInt" class="font-medium text-gray-800">$0.00</span>
+            </div>
+            <div class="flex justify-between pt-2 border-t border-gray-200">
+              <span class="text-gray-500">Sub total línea:</span>
+              <span id="previewSubtotal" class="font-medium text-gray-800">$0.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Gastos prorr.:</span>
+              <span id="previewGastos" class="font-medium text-gray-800">$0.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">IVA prorr.:</span>
+              <span id="previewIva" class="font-medium text-gray-800">$0.00</span>
+            </div>
+            <div class="flex justify-between pt-2 border-t border-gray-200">
+              <span class="text-gray-600 font-medium">Costo total línea:</span>
+              <span id="previewCostoTotal" class="font-bold text-indigo-600">$0.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600 font-medium">Precio unitario:</span>
+              <span id="previewPU" class="font-bold text-indigo-600">$0.00</span>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 mt-6">
+            <i class="fas fa-info-circle mr-1"></i>
+            Esta vista previa muestra el cálculo del costo basado en los datos ingresados.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const API = 'http://localhost:3000';
+  const IVA_PORCENTAJE = 21;
+
+  // ===== Configuración y estado =====
+  const state = {
+    articulos: [],
+    proveedores: [],
+    sociedades: [],
+    comprasTemporales: [],
+    currentEditingIndex: null,
+    selectedArticle: null,
+    stockData: {} // Almacena información de stock por artículo
+  };
+
+  // ===== Referencias del DOM =====
+  const elements = {
+    tablaBody: document.getElementById('articlesTable'),
+    emptyState: document.getElementById('emptyState'),
+    articlesCount: document.getElementById('articlesCount'),
+    sociedadSelect: document.getElementById('sociedad'),
+    proveedorSelect: document.getElementById('proveedor'),
+    articuloSearch: document.getElementById('articuloSearch'),
+    searchResults: document.getElementById('searchResults'),
+    selectedArticle: document.getElementById('selectedArticle'),
+    selectedArticleName: document.getElementById('selectedArticleName'),
+    selectedArticleCode: document.getElementById('selectedArticleCode'),
+    selectedArticleUM: document.getElementById('selectedArticleUM'),
+    selectedArticleUndxCaja: document.getElementById('selectedArticleUndxCaja'),
+    clearSelection: document.getElementById('clearSelection'),
+    articuloKey: document.getElementById('articuloKey'),
+    stockInfo: document.getElementById('stockInfo'),
+    stockActual: document.getElementById('stockActual'),
+    stockDespues: document.getElementById('stockDespues'),
+    fechaFactura: document.getElementById('fechaFactura'),
+    fechaRecepcion: document.getElementById('fechaRecepcion'),
+    addArticleBtn: document.getElementById('addArticleBtn'),
+    saveAllBtn: document.getElementById('saveAllBtn'),
+    articleModal: document.getElementById('articleModal'),
+    closeModalBtn: document.getElementById('closeModal'),
+    cancelArticleBtn: document.getElementById('cancelArticle'),
+    articleForm: document.getElementById('articleForm'),
+    importeNeto: document.getElementById('importeNeto'),
+    gastosEnvio: document.getElementById('gastosEnvio'),
+    impuestosInternos: document.getElementById('impuestosInternos'),
+    percepcionIva: document.getElementById('percepcionIva'),
+    percepcionIibb: document.getElementById('percepcionIibb'),
+    ivaCf: document.getElementById('ivaCf'),
+    totalFactura: document.getElementById('totalFactura'),
+    numeroFactura: document.getElementById('numeroFactura'),
+    cantidad: document.getElementById('cantidad'),
+    netoUnitario: document.getElementById('netoUnitario'),
+    previewArticulo: document.getElementById('previewArticulo'),
+    previewCantidad: document.getElementById('previewCantidad'),
+    previewNetoUnit: document.getElementById('previewNetoUnit'),
+    previewPorcentajeII: document.getElementById('previewPorcentajeII'),
+    previewImpInt: document.getElementById('previewImpInt'),
+    previewSubtotal: document.getElementById('previewSubtotal'),
+    previewGastos: document.getElementById('previewGastos'),
+    previewIva: document.getElementById('previewIva'),
+    previewCostoTotal: document.getElementById('previewCostoTotal'),
+    previewPU: document.getElementById('previewPU'),
+    summaryNeto: document.getElementById('summaryNeto'),
+    summaryImpuestos: document.getElementById('summaryImpuestos'),
+    summaryCostoTotal: document.getElementById('summaryCostoTotal'),
+    summaryMargen: document.getElementById('summaryMargen')
+  };
+
+  // ===== Utilidades =====
+  const utils = {
+    formatNumber: (value, decimals = 2) => (value ?? 0).toFixed(decimals),
+    generateTempId: () => `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    formatDateForInput: (date) => date.toISOString().split('T')[0],
+    parseFloatSafe: (value) => parseFloat(value) || 0,
+    getFacturaData: () => ({
+      importeNeto: utils.parseFloatSafe(elements.importeNeto.value),
+      gastosEnvio: utils.parseFloatSafe(elements.gastosEnvio.value),
+      impuestosInternos: utils.parseFloatSafe(elements.impuestosInternos.value)
+    }),
+    normalizeText: (text) => {
+      return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    },
+    highlightText: (text, searchTerm) => {
+      if (!searchTerm) return text;
+      const regex = new RegExp(`(${this.escapeRegex(searchTerm)})`, 'gi');
+      return text.replace(regex, '<span class="search-highlight">$1</span>');
+    },
+    escapeRegex: (text) => {
+      return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+  };
+
+  // ===== Cálculos =====
+  const calculos = {
+    porcentajeII: (impuestosInternos, importeNeto) => {
+      if (!importeNeto || importeNeto === 0) return 0;
+      return (impuestosInternos / importeNeto) * 100;
+    },
+    
+    gastosEnvioProporcional: (gastosEnvioFactura, subtotalLinea, importeNetoFactura, impuestosInternosFactura) => {
+      const baseImponible = importeNetoFactura + impuestosInternosFactura;
+      if (!baseImponible || baseImponible === 0) return 0;
+      return gastosEnvioFactura * (subtotalLinea / baseImponible);
+    },
+    
+    mitadIVA: (subtotalLinea, gastosEnvioProporcional) => {
+      return (subtotalLinea + gastosEnvioProporcional) * (IVA_PORCENTAJE / 100 / 2);
+    },
+    
+    costoTotal: (subtotalLinea, gastosEnvioProporcional, mitadIVA) => {
+      return subtotalLinea + gastosEnvioProporcional + mitadIVA;
+    },
+    
+    precioUnitario: (costoTotalLinea, cantidad) => {
+      if (!cantidad || cantidad === 0) return 0;
+      return costoTotalLinea / cantidad;
+    }
+  };
+
+  // ===== API Calls =====
+  const api = {
+    async fetchData(endpoint) {
+      try {
+        const response = await fetch(`${API}${endpoint}`);
+        const data = await response.json();
+        return data.success ? data.data : [];
+      } catch (error) {
+        console.error(`Error al cargar ${endpoint}:`, error);
+        return [];
+      }
+    },
+
+    async loadSociedades() {
+      state.sociedades = await this.fetchData('/api/sociedades');
+      this.renderSelect(elements.sociedadSelect, state.sociedades, 'denominacionSociedad', 'SociedadKey');
+    },
+
+    async loadProveedores() {
+      state.proveedores = await this.fetchData('/api/providers');
+      this.renderSelect(elements.proveedorSelect, state.proveedores, 'nombreProveedor', 'ProveedorKey');
+    },
+
+    async loadArticulos() {
+      try {
+        console.log('Cargando artículos desde API...');
+        state.articulos = await this.fetchData('/api/articles');
+        
+        // Si no hay artículos, crear algunos de ejemplo para probar
+        if (state.articulos.length === 0) {
+          console.log('No se cargaron artículos, creando datos de ejemplo...');
+          state.articulos = [
+            {
+              ArticuloKey: 1,
+              idArticulos: 'CAMPAR',
+              descripcionArticulos: 'APER CAMPARI 750CC',
+              UM: 'UN',
+              undxCaja: 12,
+              Categoria: 'APERITIVOS'
+            },
+            {
+              ArticuloKey: 2,
+              idArticulos: 'SERVB',
+              descripcionArticulos: 'SERVICIO BARRIL 20L',
+              UM: 'UN',
+              undxCaja: 1,
+              Categoria: 'SERVICIOS'
+            },
+            {
+              ArticuloKey: 3,
+              idArticulos: 'SERVM',
+              descripcionArticulos: 'SERVICIO MESA',
+              UM: 'UN',
+              undxCaja: 1,
+              Categoria: 'SERVICIOS'
+            },
+            {
+              ArticuloKey: 4,
+              idArticulos: 'CERVP',
+              descripcionArticulos: 'CERVEZA PATAGONIA 750ML',
+              UM: 'UN',
+              undxCaja: 12,
+              Categoria: 'CERVEZAS'
+            }
+          ];
+        }
+        
+        console.log(`Total de artículos disponibles: ${state.articulos.length}`);
+      } catch (error) {
+        console.error('Error crítico al cargar artículos:', error);
+      }
+    },
+
+    async consultarStock(articuloKey) {
+      try {
+        const response = await fetch(`${API}/api/stock/${articuloKey}`);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error al consultar stock:', error);
+        // Retornar datos de ejemplo si falla
+        return { 
+          success: true, 
+          data: {
+            stockDisponible: Math.floor(Math.random() * 100) + 10, // Stock aleatorio para pruebas
+            undxCaja: 12,
+            stockDisponibleCajas: 8
+          }
+        };
+      }
+    },
+
+    renderSelect(selectElement, data, textFn, valueKey = 'value') {
+      const getText = typeof textFn === 'function' ? textFn : (item) => item[textFn];
+      selectElement.innerHTML = '<option value="">Seleccionar</option>' +
+        data.map(item => `<option value="${item[valueKey]}">${getText(item)}</option>`).join('');
+    },
+
+    async saveCompras(compras) {
+      try {
+        console.log('Enviando compras a guardar:', compras);
+        
+        // Usar el endpoint correcto para guardar compras
+        const response = await fetch(`${API}/api/costeo`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            compras: compras,
+            factura: {
+              numero: elements.numeroFactura.value,
+              fechaFactura: elements.fechaFactura.value,
+              fechaRecepcion: elements.fechaRecepcion.value
+            }
+          })
+        });
+
+        const result = await response.json();
+        console.log('Respuesta del servidor:', result);
+        
+        return result.success;
+      } catch (error) {
+        console.error('Error al guardar compras:', error);
+        return false;
+      }
+    }
+  };
+
+  // ===== Gestión de Stock =====
+  const stockManager = {
+    async actualizarStockInfo(articuloKey) {
+      if (!articuloKey) {
+        elements.stockInfo.classList.add('hidden');
+        return;
+      }
+
+      const resultado = await api.consultarStock(articuloKey);
+      
+      if (resultado.success) {
+        state.stockData[articuloKey] = resultado.data;
+        this.mostrarStockInfo(resultado.data);
+      } else {
+        elements.stockInfo.classList.add('hidden');
+        console.warn('No se pudo obtener información de stock:', resultado.message);
+      }
+    },
+
+    mostrarStockInfo(stockData) {
+      elements.stockInfo.classList.remove('hidden');
+      elements.stockActual.textContent = `${stockData.stockDisponible} unidades`;
+      
+      // Calcular stock después de la compra
+      const cantidad = utils.parseFloatSafe(elements.cantidad.value);
+      const stockDespues = stockData.stockDisponible + cantidad;
+      elements.stockDespues.textContent = `${stockDespues} unidades`;
+    },
+
+    actualizarStockDespues() {
+      const articuloKey = parseInt(elements.articuloKey.value, 10);
+      const cantidad = utils.parseFloatSafe(elements.cantidad.value);
+      
+      if (!articuloKey || !state.stockData[articuloKey]) return;
+
+      const stockInfo = state.stockData[articuloKey];
+      const stockDespues = stockInfo.stockDisponible + cantidad;
+      elements.stockDespues.textContent = `${stockDespues} unidades`;
+    },
+
+    getStockDespuesCompra(articuloKey, cantidad) {
+      if (!state.stockData[articuloKey]) return 'N/A';
+      const stockInfo = state.stockData[articuloKey];
+      return stockInfo.stockDisponible + cantidad;
+    }
+  };
+
+  // ===== Búsqueda de Artículos =====
+  const searchManager = {
+    searchTimeout: null,
+    
+    init() {
+      console.log('Inicializando buscador de costeo...');
+      
+      elements.articuloSearch.addEventListener('input', (e) => {
+        console.log('Buscando:', e.target.value);
+        this.handleSearch(e.target.value);
+      });
+      
+      elements.articuloSearch.addEventListener('focus', () => {
+        console.log('Campo de búsqueda enfocado');
+        if (elements.articuloSearch.value && !state.selectedArticle) {
+          this.handleSearch(elements.articuloSearch.value);
+        }
+      });
+      
+      elements.articuloSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.hideResults();
+        }
+      });
+      
+      // Cerrar resultados al hacer clic fuera
+      document.addEventListener('click', (e) => {
+        if (!elements.articuloSearch.contains(e.target) && 
+            !elements.searchResults.contains(e.target)) {
+          this.hideResults();
+        }
+      });
+      
+      elements.clearSelection.addEventListener('click', () => {
+        this.clearSelection();
+      });
+      
+      console.log('Buscador de costeo inicializado correctamente');
+    },
+    
+    handleSearch(searchTerm) {
+      clearTimeout(this.searchTimeout);
+      
+      if (!searchTerm || searchTerm.length < 2) {
+        this.hideResults();
+        return;
+      }
+      
+      this.searchTimeout = setTimeout(() => {
+        this.performSearch(searchTerm);
+      }, 200);
+    },
+    
+    performSearch(searchTerm) {
+      console.log('Ejecutando búsqueda para:', searchTerm);
+      console.log('Artículos disponibles:', state.articulos.length);
+      
+      const normalizedSearch = utils.normalizeText(searchTerm);
+      
+      const filtered = state.articulos.filter(articulo => {
+        const searchInCode = utils.normalizeText(articulo.idArticulos || '');
+        const searchInDesc = utils.normalizeText(articulo.descripcionArticulos || '');
+        
+        return searchInCode.includes(normalizedSearch) || 
+               searchInDesc.includes(normalizedSearch);
+      });
+      
+      console.log('Resultados encontrados:', filtered.length);
+      this.displayResults(filtered, searchTerm);
+    },
+    
+    displayResults(results, searchTerm) {
+      console.log('Mostrando resultados:', results.length);
+      
+      if (results.length === 0) {
+        elements.searchResults.innerHTML = `
+          <div class="search-item text-gray-500 italic">
+            <i class="fas fa-search mr-2"></i>
+            No se encontraron artículos que coincidan con "${searchTerm}"
+          </div>
+        `;
+      } else {
+        elements.searchResults.innerHTML = results.slice(0, 8).map(articulo => {
+          console.log('Procesando artículo:', articulo);
+          return `
+          <div class="search-item" data-key="${articulo.ArticuloKey}">
+            <div class="font-semibold text-gray-900 text-sm">
+              ${articulo.idArticulos}
+            </div>
+            <div class="text-sm text-gray-700 mt-1">
+              ${articulo.descripcionArticulos}
+            </div>
+            <div class="text-xs text-gray-500 mt-1 flex gap-4">
+              <span>${articulo.UM || 'UN'}</span>
+              <span>${articulo.undxCaja || 1} und/caja</span>
+              <span>${articulo.Categoria || 'Sin categoría'}</span>
+            </div>
+          </div>
+        `}).join('');
+        
+        // Agregar event listeners a los resultados
+        elements.searchResults.querySelectorAll('.search-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const articuloKey = parseInt(item.getAttribute('data-key'), 10);
+            console.log('Artículo seleccionado:', articuloKey);
+            this.selectArticle(articuloKey);
+          });
+        });
+      }
+      
+      elements.searchResults.classList.remove('hidden');
+    },
+    
+    hideResults() {
+      elements.searchResults.classList.add('hidden');
+    },
+    
+    async selectArticle(articuloKey) {
+      console.log('Seleccionando artículo:', articuloKey);
+      const articulo = state.articulos.find(a => a.ArticuloKey === articuloKey);
+      if (!articulo) {
+        console.error('Artículo no encontrado:', articuloKey);
+        return;
+      }
+      
+      state.selectedArticle = articulo;
+      elements.articuloKey.value = articuloKey;
+      elements.articuloSearch.value = '';
+      
+      // Mostrar artículo seleccionado
+      elements.selectedArticleName.textContent = articulo.descripcionArticulos;
+      elements.selectedArticleCode.textContent = articulo.idArticulos;
+      elements.selectedArticleUM.textContent = articulo.UM || 'UN';
+      elements.selectedArticleUndxCaja.textContent = articulo.undxCaja || 1;
+      elements.selectedArticle.classList.remove('hidden');
+      
+      this.hideResults();
+      
+      // Cargar información de stock
+      await stockManager.actualizarStockInfo(articuloKey);
+      
+      // Enfocar el campo de cantidad
+      setTimeout(() => {
+        elements.cantidad.focus();
+        elements.cantidad.select();
+      }, 100);
+      
+      // Actualizar vista previa
+      previewManager.update();
+    },
+    
+    clearSelection() {
+      state.selectedArticle = null;
+      elements.articuloKey.value = '';
+      elements.selectedArticle.classList.add('hidden');
+      elements.stockInfo.classList.add('hidden');
+      previewManager.update();
+      
+      // Enfocar el campo de búsqueda
+      setTimeout(() => {
+        elements.articuloSearch.focus();
+      }, 100);
+    }
+  };
+
+  // ===== Gestión de Compras Temporales =====
+  const comprasManager = {
+    addOrEdit(compraData) {
+      const compra = {
+        tempId: state.currentEditingIndex !== null ? 
+          state.comprasTemporales[state.currentEditingIndex].tempId : utils.generateTempId(),
+        ...compraData,
+        stockDespues: stockManager.getStockDespuesCompra(compraData.ArticuloKey, compraData.cantidad)
+      };
+
+      if (state.currentEditingIndex !== null) {
+        state.comprasTemporales[state.currentEditingIndex] = compra;
+      } else {
+        state.comprasTemporales.push(compra);
+      }
+      
+      this.render();
+    },
+
+    delete(index) {
+      if (confirm('¿Eliminar este artículo de la lista?')) {
+        state.comprasTemporales.splice(index, 1);
+        this.render();
+      }
+    },
+
+    edit(index) {
+      const compra = state.comprasTemporales[index];
+      state.currentEditingIndex = index;
+      
+      // Seleccionar artículo
+      searchManager.selectArticle(compra.ArticuloKey);
+      
+      // Llenar formulario
+      elements.cantidad.value = compra.cantidad;
+      elements.netoUnitario.value = compra.netoUnitario;
+      
+      // Abrir modal
+      modalManager.open('edit');
+    },
+
+    render() {
+      const { comprasTemporales } = state;
+      
+      if (!comprasTemporales.length) {
+        elements.tablaBody.innerHTML = '';
+        elements.emptyState.classList.remove('hidden');
+        elements.articlesCount.textContent = '0 artículos';
+        summaryManager.update([]);
+        return;
+      }
+      
+      elements.emptyState.classList.add('hidden');
+      elements.articlesCount.textContent = `${comprasTemporales.length} artículo${comprasTemporales.length !== 1 ? 's' : ''}`;
+
+      elements.tablaBody.innerHTML = comprasTemporales.map((compra, index) => {
+        const articulo = state.articulos.find(a => a.ArticuloKey === compra.ArticuloKey);
+        const descripcion = articulo ? 
+          `${articulo.idArticulos} - ${articulo.descripcionArticulos}` : compra.ArticuloKey;
+
+        return `
+          <tr class="article-row">
+            <td class="px-6 py-4 text-sm text-gray-900">${descripcion}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">${compra.cantidad ?? ''}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">$ ${utils.formatNumber(compra.netoUnitario)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">${utils.formatNumber(compra.porcentajeII)}%</td>
+            <td class="px-6 py-4 text-sm text-gray-500">$ ${utils.formatNumber(compra.impuestosInternos)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">$ ${utils.formatNumber(compra.subTotal)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">$ ${utils.formatNumber(compra.gastosEnvio)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">$ ${utils.formatNumber(compra.percepcionIVA)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">$ ${utils.formatNumber(compra.costoTotal)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">$ ${utils.formatNumber(compra.PU)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500 font-medium">${compra.stockDespues || 'N/A'}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">
+              <div class="flex space-x-2">
+                <button onclick="comprasManager.edit(${index})" class="text-blue-600 hover:text-blue-800 transition-colors">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="comprasManager.delete(${index})" class="text-red-600 hover:text-red-800 transition-colors">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      summaryManager.update(comprasTemporales);
+    }
+  };
+
+  // ===== Gestión del Modal =====
+  const modalManager = {
+    open(mode = 'create', compraIndex = null) {
+      elements.articleModal.classList.remove('hidden');
+      elements.articleModal.classList.add('flex');
+      state.currentEditingIndex = compraIndex;
+
+      if (mode === 'create') {
+        searchManager.clearSelection();
+        elements.cantidad.value = '1';
+        elements.netoUnitario.value = '0';
+      }
+      
+      previewManager.update();
+      
+      // Enfocar el campo de búsqueda
+      setTimeout(() => {
+        elements.articuloSearch.focus();
+      }, 100);
+    },
+
+    close() {
+      elements.articleModal.classList.add('hidden');
+      elements.articleModal.classList.remove('flex');
+      elements.articleForm.reset();
+      state.currentEditingIndex = null;
+      searchManager.clearSelection();
+    },
+
+    submit(e) {
+      e.preventDefault();
+
+      const articuloKey = parseInt(elements.articuloKey.value, 10);
+      const proveedorKey = parseInt(elements.proveedorSelect.value, 10);
+      const sociedadKey = parseInt(elements.sociedadSelect.value, 10);
+
+      if (!this.validateRequiredFields(articuloKey, proveedorKey, sociedadKey)) return;
+
+      const cantidad = utils.parseFloatSafe(elements.cantidad.value);
+      const netoUnitario = utils.parseFloatSafe(elements.netoUnitario.value);
+      
+      const compraData = this.calcularCompra(articuloKey, proveedorKey, sociedadKey, cantidad, netoUnitario);
+      comprasManager.addOrEdit(compraData);
+      this.close();
+    },
+
+    validateRequiredFields(articuloKey, proveedorKey, sociedadKey) {
+      const validations = [
+        { condition: !articuloKey, message: 'Seleccioná un artículo.' },
+        { condition: !proveedorKey, message: 'Elegí un proveedor.' },
+        { condition: !sociedadKey, message: 'Seleccioná una sociedad.' },
+        { condition: !elements.numeroFactura.value, message: 'Ingresá el número de factura.' },
+        { condition: !elements.fechaFactura.value, message: 'Ingresá la fecha de factura.' },
+        { condition: !elements.fechaRecepcion.value, message: 'Ingresá la fecha de recepción.' }
+      ];
+
+      for (const validation of validations) {
+        if (validation.condition) {
+          alert(validation.message);
+          return false;
+        }
+      }
+      return true;
+    },
+
+    calcularCompra(articuloKey, proveedorKey, sociedadKey, cantidad, netoUnitario) {
+      const facturaData = utils.getFacturaData();
+      
+      const porcentajeII = calculos.porcentajeII(facturaData.impuestosInternos, facturaData.importeNeto);
+      const II_total = netoUnitario * porcentajeII / 100;
+      const subtotal = netoUnitario + II_total;
+
+      const gastosEnvioProporcional = calculos.gastosEnvioProporcional(
+        facturaData.gastosEnvio, subtotal, facturaData.importeNeto, facturaData.impuestosInternos
+      );
+      
+      const mitadIva = calculos.mitadIVA(subtotal, gastosEnvioProporcional);
+      const costoTotal = calculos.costoTotal(subtotal, gastosEnvioProporcional, mitadIva);
+      const pu = calculos.precioUnitario(costoTotal, cantidad);
+
+      return {
+        ArticuloKey: articuloKey,
+        ProveedorKey: proveedorKey,
+        SociedadKey: sociedadKey,
+        cantidad,
+        netoUnitario,
+        porcentajeII,
+        importeNeto: netoUnitario * cantidad,
+        impuestosInternos: II_total,
+        gastosEnvio: gastosEnvioProporcional,
+        percepcionIVA: mitadIva,
+        subTotal: subtotal,
+        costoTotal,
+        PU: pu
+      };
+    }
+  };
+
+  // ===== Gestión de Vista Previa =====
+  const previewManager = {
+    update() {
+      const artKey = parseInt(elements.articuloKey.value || '0', 10);
+      const articulo = state.articulos.find(a => a.ArticuloKey === artKey);
+      const cantidad = utils.parseFloatSafe(elements.cantidad.value);
+      const netoUnitario = utils.parseFloatSafe(elements.netoUnitario.value);
+      
+      const facturaData = utils.getFacturaData();
+      
+      const porcentajeII = calculos.porcentajeII(facturaData.impuestosInternos, facturaData.importeNeto);
+      const II_total = netoUnitario * porcentajeII / 100;
+      const subtotal = netoUnitario + II_total;
+
+      const gastosProp = calculos.gastosEnvioProporcional(
+        facturaData.gastosEnvio, subtotal, facturaData.importeNeto, facturaData.impuestosInternos
+      );
+      
+      const mitadIva = calculos.mitadIVA(subtotal, gastosProp);
+      const costoTotal = calculos.costoTotal(subtotal, gastosProp, mitadIva);
+      const pu = calculos.precioUnitario(costoTotal, cantidad);
+
+      // Actualizar vista previa
+      elements.previewArticulo.textContent = articulo ? 
+        `${articulo.idArticulos} - ${articulo.descripcionArticulos}` : '—';
+      elements.previewCantidad.textContent = cantidad;
+      elements.previewNetoUnit.textContent = `$${utils.formatNumber(netoUnitario)}`;
+      elements.previewPorcentajeII.textContent = `${utils.formatNumber(porcentajeII)}%`;
+      elements.previewImpInt.textContent = `$${utils.formatNumber(II_total)}`;
+      elements.previewSubtotal.textContent = `$${utils.formatNumber(subtotal)}`;
+      elements.previewGastos.textContent = `$${utils.formatNumber(gastosProp)}`;
+      elements.previewIva.textContent = `$${utils.formatNumber(mitadIva)}`;
+      elements.previewCostoTotal.textContent = `$${utils.formatNumber(costoTotal)}`;
+      elements.previewPU.textContent = `$${utils.formatNumber(pu)}`;
+
+      // Actualizar stock después
+      stockManager.actualizarStockDespues();
+    }
+  };
+
+  // ===== Gestión de Resumen =====
+  const summaryManager = {
+    update(compras) {
+      const totalNeto = compras.reduce((acc, c) => acc + (c.subTotal || 0), 0);
+      const totalImp = compras.reduce((acc, c) => acc + (c.impuestosInternos || 0), 0);
+      const totalCosto = compras.reduce((acc, c) => acc + (c.costoTotal || 0), 0);
+      const margen = totalNeto > 0 ? ((totalCosto - totalNeto) / totalNeto) * 100 : 0;
+
+      elements.summaryNeto.textContent = `$${totalNeto.toFixed(2)}`;
+      elements.summaryImpuestos.textContent = `$${totalImp.toFixed(2)}`;
+      elements.summaryCostoTotal.textContent = `$${totalCosto.toFixed(2)}`;
+      elements.summaryMargen.textContent = `${margen.toFixed(1)}%`;
+    }
+  };
+
+  // ===== Gestión de Factura =====
+  const facturaManager = {
+    recalc() {
+      const importeNeto = utils.parseFloatSafe(elements.importeNeto.value);
+      const gastosEnvio = utils.parseFloatSafe(elements.gastosEnvio.value);
+      const impInt = utils.parseFloatSafe(elements.impuestosInternos.value);
+      const percIVA = utils.parseFloatSafe(elements.percepcionIva.value);
+      const percIIBB = utils.parseFloatSafe(elements.percepcionIibb.value);
+
+      const iva = importeNeto * (IVA_PORCENTAJE / 100);
+      elements.ivaCf.value = iva.toFixed(2);
+
+      const total = importeNeto + gastosEnvio + impInt + iva + percIVA + percIIBB;
+      elements.totalFactura.textContent = `$${total.toFixed(2)}`;
+
+      this.recalcularArticulos();
+      previewManager.update();
+    },
+
+    recalcularArticulos() {
+      if (state.comprasTemporales.length === 0) return;
+
+      const facturaData = utils.getFacturaData();
+      
+      state.comprasTemporales.forEach(compra => {
+        const porcentajeII = calculos.porcentajeII(facturaData.impuestosInternos, facturaData.importeNeto);
+        const II_total = compra.netoUnitario * porcentajeII / 100;
+        const subtotal = compra.netoUnitario + II_total;
+
+        compra.gastosEnvio = calculos.gastosEnvioProporcional(
+          facturaData.gastosEnvio, subtotal, facturaData.importeNeto, facturaData.impuestosInternos
+        );
+        
+        compra.percepcionIVA = calculos.mitadIVA(subtotal, compra.gastosEnvio);
+        compra.costoTotal = calculos.costoTotal(subtotal, compra.gastosEnvio, compra.percepcionIVA);
+        compra.PU = calculos.precioUnitario(compra.costoTotal, compra.cantidad);
+        compra.subTotal = subtotal;
+        compra.impuestosInternos = II_total;
+        compra.porcentajeII = porcentajeII;
+        compra.stockDespues = stockManager.getStockDespuesCompra(compra.ArticuloKey, compra.cantidad);
+      });
+      
+      comprasManager.render();
+    }
+  };
+
+  // ===== Guardar Datos =====
+  const saveManager = {
+    async saveAll() {
+      if (!this.validateSaveConditions()) return;
+
+      const confirmSave = confirm(`¿Guardar ${state.comprasTemporales.length} artículo${state.comprasTemporales.length !== 1 ? 's' : ''} en la base de datos?`);
+      if (!confirmSave) return;
+
+      const comprasToSave = this.prepareComprasForSave();
+      const success = await api.saveCompras(comprasToSave);
+
+      if (success) {
+        alert(`¡${state.comprasTemporales.length} artículo${state.comprasTemporales.length !== 1 ? 's' : ''} guardado${state.comprasTemporales.length !== 1 ? 's' : ''} correctamente!`);
+        state.comprasTemporales = [];
+        comprasManager.render();
+      } else {
+        alert('Hubo un error al guardar algunos artículos. Verifica la consola para más detalles.');
+      }
+    },
+
+    validateSaveConditions() {
+      const validations = [
+        { condition: !state.comprasTemporales.length, message: 'No hay artículos para guardar.' },
+        { condition: !elements.proveedorSelect.value, message: 'Seleccioná un proveedor.' },
+        { condition: !elements.sociedadSelect.value, message: 'Seleccioná una sociedad.' },
+        { condition: !elements.numeroFactura.value, message: 'Ingresá el número de factura.' },
+        { condition: !elements.fechaFactura.value, message: 'Ingresá la fecha de factura.' },
+        { condition: !elements.fechaRecepcion.value, message: 'Ingresá la fecha de recepción.' }
+      ];
+
+      for (const validation of validations) {
+        if (validation.condition) {
+          alert(validation.message);
+          return false;
+        }
+      }
+      return true;
+    },
+
+    prepareComprasForSave() {
+      return state.comprasTemporales.map(compra => ({
+        ArticuloKey: compra.ArticuloKey,
+        ProveedorKey: compra.ProveedorKey,
+        SociedadKey: compra.SociedadKey,
+        cantidad: compra.cantidad,
+        importeNeto: compra.importeNeto,
+        gastosEnvio: compra.gastosEnvio,
+        impuestosInternos: compra.impuestosInternos,
+        percepcionIVA: compra.percepcionIVA,
+        percepcionIIBB: 0,
+        netoImpuesto: compra.subTotal,
+        subTotal: compra.subTotal,
+        costoTotal: compra.costoTotal,
+        PU: compra.PU,
+        factura: elements.numeroFactura.value,
+        FechaFactura: elements.fechaFactura.value,
+        FechaRecepcion: elements.fechaRecepcion.value
+      }));
+    }
+  };
+
+  // ===== Inicialización =====
+  const init = {
+    async start() {
+      console.log('Iniciando aplicación de costeo...');
+      const today = new Date();
+      elements.fechaFactura.value = utils.formatDateForInput(today);
+      elements.fechaRecepcion.value = utils.formatDateForInput(today);
+
+      await Promise.all([
+        api.loadSociedades(),
+        api.loadProveedores(),
+        api.loadArticulos()
+      ]);
+
+      // Inicializar buscador
+      searchManager.init();
+
+      facturaManager.recalc();
+      previewManager.update();
+      this.setupEventListeners();
+      console.log('Aplicación de costeo iniciada correctamente');
+    },
+
+    setupEventListeners() {
+      // Botones principales
+      elements.addArticleBtn.addEventListener('click', () => modalManager.open('create'));
+      elements.saveAllBtn.addEventListener('click', () => saveManager.saveAll());
+      
+      // Modal
+      elements.closeModalBtn.addEventListener('click', () => modalManager.close());
+      elements.cancelArticleBtn.addEventListener('click', () => modalManager.close());
+      elements.articleForm.addEventListener('submit', (e) => modalManager.submit(e));
+
+      // Campos de factura que disparan recálculos
+      [elements.importeNeto, elements.gastosEnvio, elements.impuestosInternos, 
+       elements.percepcionIva, elements.percepcionIibb].forEach(el => 
+        el.addEventListener('input', () => facturaManager.recalc()));
+
+      // Campos del modal que actualizan vista previa y stock
+      [elements.cantidad, elements.netoUnitario].forEach(el => 
+        el.addEventListener('input', () => previewManager.update()));
+    }
+  };
+
+  // ===== Exponer funciones globales =====
+  window.comprasManager = comprasManager;
+
+  // ===== Iniciar aplicación =====
+  init.start();
+});
+</script>
+</body>
+</html>

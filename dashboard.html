@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Gestión de Bebidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .module-card { transition: all 0.3s ease; }
+        .module-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .nav-item { transition: all 0.3s ease; }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.1); }
+        .nav-item.active { background: rgba(255, 255, 255, 0.2); }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center">
+                            <i class="fas fa-wine-bottle text-2xl text-white mr-3"></i>
+                            <h1 class="text-xl font-bold text-white">Sistema de Bebidas</h1>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-white/80 text-sm">
+                        <i class="fas fa-user mr-2"></i>
+                        <span id="currentUser">Usuario</span>
+                    </div>
+                    <button id="logoutBtn" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white">
+                        <i class="fas fa-sign-out-alt mr-1"></i>
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Section -->
+        <div class="mb-8 fade-in">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Bienvenido al Sistema</h2>
+            <p class="text-gray-600">Selecciona un módulo para comenzar</p>
+        </div>
+
+        <!-- Modules Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Gestión de Artículos -->
+            <div class="module-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" onclick="navigateToModule('articulos')">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-boxes text-blue-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-500">SharePoint</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Gestión de Artículos</h3>
+                <p class="text-gray-600 text-sm mb-4">Administra artículos con conexión directa a SharePoint. CRUD completo con autocompletado y actualización automática.</p>
+                <div class="flex items-center text-blue-600 text-sm font-medium">
+                    <span>Acceder</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Costeo de Bebidas -->
+            <div class="module-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" onclick="navigateToModule('costeo')">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-calculator text-green-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-500">Automatizado</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Costeo de Bebidas</h3>
+                <p class="text-gray-600 text-sm mb-4">Cálculo automático de costos con impuestos, gastos de envío y márgenes. Validación en tiempo real.</p>
+                <div class="flex items-center text-green-600 text-sm font-medium">
+                    <span>Acceder</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Registro de Ventas -->
+            <div class="module-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" onclick="navigateToModule('ventas')">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-500">En tiempo real</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Registro de Ventas</h3>
+                <p class="text-gray-600 text-sm mb-4">Control de ventas con cálculo de márgenes, validación de stock y reportes de rentabilidad.</p>
+                <div class="flex items-center text-purple-600 text-sm font-medium">
+                    <span>Acceder</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Gestión de Proveedores -->
+            <div class="module-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" onclick="navigateToModule('proveedores')">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-truck text-orange-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-500">Admin</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Gestión de Proveedores</h3>
+                <p class="text-gray-600 text-sm mb-4">Alta y gestión de proveedores con información completa y control de relaciones comerciales.</p>
+                <div class="flex items-center text-orange-600 text-sm font-medium">
+                    <span>Acceder</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Control de Stock -->
+            <div class="module-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" onclick="navigateToModule('stock')">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-warehouse text-red-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-500">Inventario</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Control de Stock</h3>
+                <p class="text-gray-600 text-sm mb-4">Movimientos de stock, reportes de inventario y alertas de productos bajos en tiempo real.</p>
+                <div class="flex items-center text-red-600 text-sm font-medium">
+                    <span>Acceder</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Reportes -->
+            <div class="module-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" onclick="navigateToModule('reportes')">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-alt text-indigo-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-500">Analytics</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Reportes</h3>
+                <p class="text-gray-600 text-sm mb-4">Exportación de datos, métricas de ventas y análisis de rentabilidad con gráficos interactivos.</p>
+                <div class="flex items-center text-indigo-600 text-sm font-medium">
+                    <span>Acceder</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-boxes text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Artículos</p>
+                        <p class="text-2xl font-bold text-gray-800" id="totalArticulos">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Ventas Hoy</p>
+                        <p class="text-2xl font-bold text-gray-800" id="ventasHoy">$0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-truck text-purple-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Proveedores</p>
+                        <p class="text-2xl font-bold text-gray-800" id="totalProveedores">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Stock Bajo</p>
+                        <p class="text-2xl font-bold text-gray-800" id="stockBajo">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar autenticación
+        const currentUser = localStorage.getItem('currentUser');
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        } else {
+            const user = JSON.parse(currentUser);
+            document.getElementById('currentUser').textContent = user.username;
+        }
+
+        // Cerrar sesión
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
+
+        // Navegación entre módulos
+        function navigateToModule(module) {
+            // Animación de salida
+            anime({
+                targets: '.module-card',
+                opacity: [1, 0],
+                translateY: [0, -20],
+                duration: 300,
+                delay: anime.stagger(50),
+                easing: 'easeInQuad',
+                complete: function() {
+                    // Navegar al módulo correspondiente
+                    switch(module) {
+                        case 'articulos':
+                            window.location.href = 'articulos.html';
+                            break;
+                        case 'costeo':
+                            window.location.href = 'costeo.html';
+                            break;
+                        case 'ventas':
+                            window.location.href = 'ventas.html';
+                            break;
+                        case 'proveedores':
+                            window.location.href = 'proveedores.html';
+                            break;
+                        case 'stock':
+                            window.location.href = 'stock.html';
+                            break;
+                        case 'reportes':
+                            window.location.href = 'reportes.html';
+                            break;
+                        default:
+                            console.log('Módulo no implementado');
+                    }
+                }
+            });
+        }
+
+        // Cargar estadísticas iniciales
+        function loadStats() {
+            // Simulación de datos (en producción vendrían de la API)
+            const stats = {
+                totalArticulos: 156,
+                ventasHoy: 2847.50,
+                totalProveedores: 23,
+                stockBajo: 8
+            };
+
+            document.getElementById('totalArticulos').textContent = stats.totalArticulos;
+            document.getElementById('ventasHoy').textContent = '$' + stats.ventasHoy.toLocaleString('es-AR');
+            document.getElementById('totalProveedores').textContent = stats.totalProveedores;
+            document.getElementById('stockBajo').textContent = stats.stockBajo;
+        }
+
+        // Animación inicial
+        anime({
+            targets: '.module-card',
+            opacity: [0, 1],
+            translateY: [30, 0],
+            duration: 600,
+            delay: anime.stagger(100),
+            easing: 'easeOutQuad'
+        });
+
+        anime({
+            targets: '.bg-white',
+            opacity: [0, 1],
+            scale: [0.9, 1],
+            duration: 500,
+            delay: anime.stagger(50),
+            easing: 'easeOutQuad'
+        });
+
+        // Cargar estadísticas al iniciar
+        loadStats();
+    </script>
+</body>
+</html>

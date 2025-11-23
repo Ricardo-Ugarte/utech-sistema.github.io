@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Artículos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  />
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .gradient-bg { background: linear-gradient(90deg,#5a5ed1 0%,#6f4ad3 50%,#7c2dd6 100%); }
+    .modal { display:none; }
+    .modal.show { display:flex; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- barra superior -->
+  <nav class="gradient-bg shadow-md">
+    <div class="max-w-7xl mx-auto px-4 lg:px-8 h-16 flex items-center justify-between text-white">
+      <div class="flex items-center gap-3">
+        <button onclick="window.history.back()" class="flex items-center gap-1 text-white/90 hover:text-white">
+          <i class="fa-solid fa-arrow-left text-sm"></i>
+          <span class="text-sm">Volver</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-sitemap text-2xl"></i>
+          <span class="text-lg font-semibold">Gestión de Artículos</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-5">
+        <div class="flex items-center gap-2 text-sm text-white/90">
+          <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+          Conectado al servidor
+        </div>
+        <button class="text-sm text-white/80 hover:text-white flex items-center gap-1">
+          <i class="fa-solid fa-right-from-bracket text-sm"></i> Cerrar sesión
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- contenido -->
+  <main class="max-w-7xl mx-auto px-4 lg:px-8 py-10">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Artículos</h1>
+        <p class="text-gray-500">Gestión de artículos</p>
+      </div>
+      <button
+        id="addNewBtn"
+        class="bg-[#0f62fe] hover:bg-[#0b4ed4] text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-sm"
+      >
+        <i class="fa-solid fa-plus"></i>
+        Nuevo Artículo
+      </button>
+    </div>
+
+    <!-- filtros -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
+      <div class="p-5 flex flex-col gap-4 md:flex-row md:items-center">
+        <div class="flex-1">
+          <div class="relative">
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="Buscar por código, descripción..."
+              class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20 outline-none"
+            />
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- tabla -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <table class="min-w-full">
+        <thead class="bg-gray-50 border-b border-gray-100">
+          <tr>
+            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Código</th>
+            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Descripción</th>
+            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">UM</th>
+            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Impuesto %</th>
+            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Und x Caja</th>
+            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">ML</th>
+            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="articlesTable" class="divide-y divide-gray-100 bg-white"></tbody>
+      </table>
+
+      <div id="loadingState" class="py-10 text-center text-gray-400 text-sm hidden">
+        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando artículos...
+      </div>
+      <div id="emptyState" class="py-10 text-center text-gray-400 text-sm hidden">
+        <i class="fa-regular fa-inbox mr-2"></i> No hay artículos cargados
+      </div>
+    </div>
+  </main>
+
+  <!-- modal -->
+  <div id="articleModal" class="modal fixed inset-0 bg-black/40 z-50 items-center justify-center px-4">
+    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-lg overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 border-b">
+        <h3 id="modalTitle" class="text-lg font-semibold text-gray-900">Nuevo Artículo</h3>
+        <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+      <form id="articleForm" class="p-6 space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-gray-700">Código *</label>
+            <input
+              id="codigo"
+              required
+              class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20"
+            />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Descripción *</label>
+            <input
+              id="descripcion"
+              required
+              class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-gray-700">UM</label>
+            <select
+              id="um"
+              class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20"
+            >
+              <option value="UN">UN</option>
+              <option value="LT">LT</option>
+              <option value="KG">KG</option>
+              <option value="CJ">CJ</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Impuesto interno %</label>
+            <input
+              id="impuesto"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0"
+              class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-gray-700">Unidades por Caja</label>
+            <input
+              id="undxCaja"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="0"
+              class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20"
+            />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">ML</label>
+            <input
+              id="ml"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0"
+              class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium text-gray-700">Notas</label>
+          <textarea
+            id="notas"
+            rows="3"
+            class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0f62fe] focus:ring-2 focus:ring-[#0f62fe]/20"
+          ></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button
+            type="button"
+            id="cancelBtn"
+            class="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 rounded-lg bg-[#0f62fe] text-white hover:bg-[#0b4ed4]"
+          >
+            <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const API = 'http://localhost:3000';
+      let articles = [];
+      let currentEditingId = null;
+
+      const tableBody = document.getElementById('articlesTable');
+      const loading = document.getElementById('loadingState');
+      const empty = document.getElementById('emptyState');
+      const modal = document.getElementById('articleModal');
+      const addNewBtn = document.getElementById('addNewBtn');
+      const closeModalBtn = document.getElementById('closeModal');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const form = document.getElementById('articleForm');
+      const searchInput = document.getElementById('searchInput');
+
+      function openModal(article = null) {
+        modal.classList.add('show');
+        if (article) {
+          currentEditingId = article.id;
+          document.getElementById('modalTitle').textContent = 'Editar artículo';
+          document.getElementById('codigo').value = article.codigo || '';
+          document.getElementById('descripcion').value = article.descripcion || '';
+          document.getElementById('um').value = article.um || 'UN';
+          document.getElementById('impuesto').value = article.impuesto || 0;
+          document.getElementById('undxCaja').value = article.undxCaja || 0;
+          document.getElementById('ml').value = article.ml || 0;
+          document.getElementById('notas').value = article.notas || '';
+        } else {
+          currentEditingId = null;
+          document.getElementById('modalTitle').textContent = 'Nuevo Artículo';
+          form.reset();
+        }
+      }
+
+      function closeModal() {
+        modal.classList.remove('show');
+        form.reset();
+        currentEditingId = null;
+      }
+
+      function renderArticles(list = null) {
+        const data = list || articles;
+        loading.classList.add('hidden');
+        if (!data.length) {
+          empty.classList.remove('hidden');
+          tableBody.innerHTML = '';
+          return;
+        }
+        empty.classList.add('hidden');
+        tableBody.innerHTML = data.map(a => `
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-3 text-sm text-gray-900">${a.codigo || ''}</td>
+            <td class="px-6 py-3 text-sm text-gray-700">${a.descripcion || ''}</td>
+            <td class="px-6 py-3 text-sm text-gray-500">${a.um || ''}</td>
+            <td class="px-6 py-3 text-sm text-gray-500">${a.impuesto ?? ''}</td>
+            <td class="px-6 py-3 text-sm text-gray-500">${a.undxCaja ?? ''}</td>
+            <td class="px-6 py-3 text-sm text-gray-500">${a.ml ?? ''}</td>
+            <td class="px-6 py-3 text-sm">
+              <div class="flex gap-2">
+                <button onclick="editArticle(${a.id})" class="text-indigo-600 hover:text-indigo-800">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="deleteArticle(${a.id})" class="text-red-500 hover:text-red-700">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`).join('');
+      }
+
+      async function loadArticles() {
+        loading.classList.remove('hidden');
+        try {
+          const resp = await fetch(API + '/api/articles');
+          const data = await resp.json();
+          if (data.success) {
+            articles = data.data.map(a => ({
+              id: a.ArticuloKey,
+              codigo: a.idArticulos,
+              descripcion: a.descripcionArticulos,
+              um: a.UM,
+              impuesto: a.impuestoInterno,
+              undxCaja: a.undxCaja,
+              ml: a.ml,
+              notas: ''
+            }));
+            renderArticles();
+          } else empty.classList.remove('hidden');
+        } catch {
+          empty.classList.remove('hidden');
+        } finally {
+          loading.classList.add('hidden');
+        }
+      }
+
+      function filterArticles() {
+        const search = searchInput.value.toLowerCase();
+        const filtered = articles.filter(a =>
+          !search ||
+          (a.codigo && a.codigo.toLowerCase().includes(search)) ||
+          (a.descripcion && a.descripcion.toLowerCase().includes(search))
+        );
+        renderArticles(filtered);
+      }
+
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const codigo = document.getElementById('codigo').value.trim();
+        const descripcion = document.getElementById('descripcion').value.trim();
+        const um = document.getElementById('um').value;
+        const impuesto = Number(document.getElementById('impuesto').value) || 0;
+        const undxCaja = Number(document.getElementById('undxCaja').value) || 0;
+        const ml = Number(document.getElementById('ml').value) || 0;
+        
+        if (!codigo || !descripcion) return alert('Código y descripción son obligatorios');
+
+        try {
+          const resp = await fetch(API + '/api/articles', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({codigo, descripcion, um, impuesto, undxCaja, ml})
+          });
+          const data = await resp.json();
+          if (data.success) {
+            await loadArticles();
+            closeModal();
+          } else alert('Error: ' + (data.detail || data.message));
+        } catch {
+          alert('Error al conectar con el servidor');
+        }
+      });
+
+      window.deleteArticle = async function (id) {
+        if (!confirm('¿Eliminar este artículo?')) return;
+        try {
+          const resp = await fetch(API + '/api/articles/' + id, { method: 'DELETE' });
+          const data = await resp.json();
+          if (data.success) {
+            articles = articles.filter(a => a.id !== id);
+            renderArticles();
+          } else alert('No se pudo eliminar');
+        } catch {
+          alert('Error al eliminar');
+        }
+      };
+
+      window.editArticle = function (id) {
+        const art = articles.find(a => a.id === id);
+        if (art) openModal(art);
+      };
+
+      addNewBtn.addEventListener('click', () => openModal());
+      closeModalBtn.addEventListener('click', closeModal);
+      cancelBtn.addEventListener('click', closeModal);
+      searchInput.addEventListener('input', filterArticles);
+
+      (async () => { await loadArticles(); })();
+    });
+  </script>
+</body>
+</html>

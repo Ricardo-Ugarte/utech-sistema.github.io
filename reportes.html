@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - Sistema de Bebidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.0.3/plotly.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .nav-item { transition: all 0.3s ease; }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.1); }
+        .nav-item.active { background: rgba(255, 255, 255, 0.2); }
+        .report-card { transition: all 0.3s ease; }
+        .report-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <button onclick="window.location.href='dashboard.html'" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white mr-4">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Volver
+                    </button>
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-alt text-2xl text-white mr-3"></i>
+                            <h1 class="text-xl font-bold text-white">Reportes</h1>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="exportBtn" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white">
+                        <i class="fas fa-download mr-1"></i>
+                        Exportar
+                    </button>
+                    <button id="logoutBtn" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white">
+                        <i class="fas fa-sign-out-alt mr-1"></i>
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8 fade-in">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Reportes y Analytics</h2>
+            <p class="text-gray-600">Análisis detallado de ventas, márgenes y rendimiento del negocio</p>
+        </div>
+
+        <!-- Report Filters -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-filter text-indigo-600 mr-2"></i>
+                Filtros de Reporte
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Período</label>
+                    <select id="periodFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <option value="today">Hoy</option>
+                        <option value="week">Esta Semana</option>
+                        <option value="month" selected>Este Mes</option>
+                        <option value="quarter">Este Trimestre</option>
+                        <option value="year">Este Año</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+                    <input type="date" id="dateFrom" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+                    <input type="date" id="dateTo" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                </div>
+                <div class="flex items-end">
+                    <button id="generateReport" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-chart-bar mr-2"></i>
+                        Generar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
+            <div class="report-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Ventas Totales</p>
+                        <p id="totalSales" class="text-2xl font-bold text-blue-600">$0.00</p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <span id="salesChange" class="text-green-600">+0%</span> vs período anterior
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-dollar-sign text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Margen Promedio</p>
+                        <p id="avgMargin" class="text-2xl font-bold text-green-600">0%</p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <span id="marginChange" class="text-green-600">+0%</span> vs período anterior
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Artículos Vendidos</p>
+                        <p id="itemsSold" class="text-2xl font-bold text-purple-600">0</p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <span id="itemsChange" class="text-green-600">+0%</span> vs período anterior
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-boxes text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Transacciones</p>
+                        <p id="transactions" class="text-2xl font-bold text-orange-600">0</p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <span id="transactionsChange" class="text-green-600">+0%</span> vs período anterior
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exchange-alt text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Sales Chart -->
+            <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                    Ventas por Período
+                </h3>
+                <div id="salesChart" style="height: 300px;"></div>
+            </div>
+
+            <!-- Top Products Chart -->
+            <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-trophy text-yellow-600 mr-2"></i>
+                    Productos Más Vendidos
+                </h3>
+                <div id="productsChart" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <!-- Detailed Reports -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Sales by Provider -->
+            <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-truck text-blue-600 mr-2"></i>
+                    Ventas por Proveedor
+                </h3>
+                <div id="providerChart" style="height: 300px;"></div>
+            </div>
+
+            <!-- Margin Analysis -->
+            <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-percentage text-purple-600 mr-2"></i>
+                    Análisis de Márgenes
+                </h3>
+                <div id="marginChart" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <!-- Detailed Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Top Selling Products -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-star text-yellow-600 mr-2"></i>
+                        Top 10 Productos
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Producto</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Cantidad</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Ventas</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Margen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topProductsTable" class="divide-y divide-gray-200">
+                            <!-- Las filas se cargarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Low Stock Alerts -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                        Alertas de Stock
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Producto</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Stock Actual</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Mínimo</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockAlertsTable" class="divide-y divide-gray-200">
+                            <!-- Las filas se cargarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar autenticación
+        const currentUser = localStorage.getItem('currentUser');
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        }
+
+        // Variables globales
+        let salesData = [];
+        let stockData = [];
+        let reportData = {};
+
+        // Cerrar sesión
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
+
+        // Generar reporte
+        document.getElementById('generateReport').addEventListener('click', generateReport);
+        document.getElementById('exportBtn').addEventListener('click', exportReport);
+
+        function generateReport() {
+            const period = document.getElementById('periodFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            
+            // Simular generación de reporte
+            showNotification('Generando reporte...', 'info');
+            
+            setTimeout(() => {
+                loadSampleReportData();
+                updateMetrics();
+                createCharts();
+                updateTables();
+                showNotification('Reporte generado exitosamente', 'success');
+            }, 1500);
+        }
+
+        function exportReport() {
+            // Simular exportación
+            showNotification('Exportando reporte...', 'info');
+            
+            setTimeout(() => {
+                const csvContent = "data:text/csv;charset=utf-8," + 
+                    "Producto,Cantidad Vendida,Ventas Totales,Margen\n" +
+                    "Coca Cola 1.5L,150,$525.00,28.5%\n" +
+                    "Pepsi 2.25L,80,$184.00,26.0%\n" +
+                    "Quilmes 1L,200,$500.00,35.0%\n";
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "reporte_ventas.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showNotification('Reporte exportado exitosamente', 'success');
+            }, 1000);
+        }
+
+        // Cargar datos de ejemplo para el reporte
+        function loadSampleReportData() {
+            reportData = {
+                totalSales: 12547.50,
+                avgMargin: 29.8,
+                itemsSold: 430,
+                transactions: 85,
+                salesChange: 12.5,
+                marginChange: 3.2,
+                itemsChange: 8.7,
+                transactionsChange: 15.3
+            };
+        }
+
+        // Actualizar métricas
+        function updateMetrics() {
+            document.getElementById('totalSales').textContent = '$' + reportData.totalSales.toFixed(2);
+            document.getElementById('avgMargin').textContent = reportData.avgMargin.toFixed(1) + '%';
+            document.getElementById('itemsSold').textContent = reportData.itemsSold;
+            document.getElementById('transactions').textContent = reportData.transactions;
+            
+            document.getElementById('salesChange').textContent = '+' + reportData.salesChange.toFixed(1) + '%';
+            document.getElementById('marginChange').textContent = '+' + reportData.marginChange.toFixed(1) + '%';
+            document.getElementById('itemsChange').textContent = '+' + reportData.itemsChange.toFixed(1) + '%';
+            document.getElementById('transactionsChange').textContent = '+' + reportData.transactionsChange.toFixed(1) + '%';
+        }
+
+        // Crear gráficos
+        function createCharts() {
+            createSalesChart();
+            createProductsChart();
+            createProviderChart();
+            createMarginChart();
+        }
+
+        // Gráfico de ventas
+        function createSalesChart() {
+            const data = [{
+                x: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                y: [1200, 1900, 3000, 5000, 2800, 3200, 1500],
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Ventas Diarias',
+                line: { color: '#10b981', width: 3 },
+                marker: { color: '#10b981', size: 8 }
+            }];
+
+            const layout = {
+                title: '',
+                xaxis: { title: 'Día de la Semana' },
+                yaxis: { title: 'Ventas ($)' },
+                margin: { t: 20, b: 50, l: 50, r: 20 },
+                plot_bgcolor: '#f9fafb',
+                paper_bgcolor: '#ffffff'
+            };
+
+            Plotly.newPlot('salesChart', data, layout, {responsive: true});
+        }
+
+        // Gráfico de productos
+        function createProductsChart() {
+            const data = [{
+                x: ['Coca Cola', 'Pepsi', 'Quilmes', 'Brahma'],
+                y: [150, 80, 200, 120],
+                type: 'bar',
+                name: 'Unidades Vendidas',
+                marker: {
+                    color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+                }
+            }];
+
+            const layout = {
+                title: '',
+                xaxis: { title: 'Productos' },
+                yaxis: { title: 'Unidades Vendidas' },
+                margin: { t: 20, b: 50, l: 50, r: 20 },
+                plot_bgcolor: '#f9fafb',
+                paper_bgcolor: '#ffffff'
+            };
+
+            Plotly.newPlot('productsChart', data, layout, {responsive: true});
+        }
+
+        // Gráfico de proveedores
+        function createProviderChart() {
+            const data = [{
+                labels: ['COCA-COLA', 'PEPSI', 'QUILMES', 'BRAHMA'],
+                values: [45, 25, 20, 10],
+                type: 'pie',
+                marker: {
+                    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+                }
+            }];
+
+            const layout = {
+                title: '',
+                margin: { t: 20, b: 20, l: 20, r: 20 },
+                paper_bgcolor: '#ffffff'
+            };
+
+            Plotly.newPlot('providerChart', data, layout, {responsive: true});
+        }
+
+        // Gráfico de márgenes
+        function createMarginChart() {
+            const data = [{
+                x: ['Coca Cola', 'Pepsi', 'Quilmes', 'Brahma'],
+                y: [28.5, 26.0, 35.0, 22.8],
+                type: 'bar',
+                name: '% Margen',
+                marker: {
+                    color: ['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981']
+                }
+            }];
+
+            const layout = {
+                title: '',
+                xaxis: { title: 'Productos' },
+                yaxis: { title: 'Margen (%)' },
+                margin: { t: 20, b: 50, l: 50, r: 20 },
+                plot_bgcolor: '#f9fafb',
+                paper_bgcolor: '#ffffff'
+            };
+
+            Plotly.newPlot('marginChart', data, layout, {responsive: true});
+        }
+
+        // Actualizar tablas
+        function updateTables() {
+            updateTopProductsTable();
+            updateStockAlertsTable();
+        }
+
+        // Tabla de productos top
+        function updateTopProductsTable() {
+            const products = [
+                { name: 'Coca Cola 1.5L', quantity: 150, sales: 525.00, margin: 28.5 },
+                { name: 'Quilmes 1L', quantity: 200, sales: 500.00, margin: 35.0 },
+                { name: 'Pepsi 2.25L', quantity: 80, sales: 184.00, margin: 26.0 },
+                { name: 'Brahma 1L', quantity: 120, sales: 300.00, margin: 22.8 }
+            ];
+
+            const tbody = document.getElementById('topProductsTable');
+            tbody.innerHTML = products.map(product => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-3 text-sm text-gray-900">${product.name}</td>
+                    <td class="px-6 py-3 text-sm text-gray-500">${product.quantity}</td>
+                    <td class="px-6 py-3 text-sm text-gray-900">$${product.sales.toFixed(2)}</td>
+                    <td class="px-6 py-3 text-sm font-medium text-green-600">${product.margin}%</td>
+                </tr>
+            `).join('');
+        }
+
+        // Tabla de alertas de stock
+        function updateStockAlertsTable() {
+            const alerts = [
+                { name: 'Pepsi 2.25L', current: 8, min: 15 },
+                { name: 'Brahma 1L', current: 0, min: 25 },
+                { name: 'Coca Cola Zero', current: 5, min: 20 }
+            ];
+
+            const tbody = document.getElementById('stockAlertsTable');
+            tbody.innerHTML = alerts.map(alert => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-3 text-sm text-gray-900">${alert.name}</td>
+                    <td class="px-6 py-3 text-sm text-red-600 font-medium">${alert.current}</td>
+                    <td class="px-6 py-3 text-sm text-gray-500">${alert.min}</td>
+                    <td class="px-6 py-3">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                            Crítico
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Notificaciones
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Inicializar con datos de ejemplo
+        function initialize() {
+            loadSampleReportData();
+            updateMetrics();
+            createCharts();
+            updateTables();
+        }
+
+        // Inicializar
+        initialize();
+        
+        // Animación inicial
+        anime({
+            targets: '.fade-in',
+            opacity: [0, 1],
+            translateY: [30, 0],
+            duration: 600,
+            delay: anime.stagger(100),
+            easing: 'easeOutQuad'
+        });
+    </script>
+</body>
+</html>

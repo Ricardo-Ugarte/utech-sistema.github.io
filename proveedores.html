@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Proveedores - Sistema de Bebidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .nav-item { transition: all 0.3s ease; }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.1); }
+        .nav-item.active { background: rgba(255, 255, 255, 0.2); }
+        .provider-card { transition: all 0.3s ease; }
+        .provider-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .input-focus { transition: all 0.3s ease; }
+        .input-focus:focus { transform: scale(1.02); box-shadow: 0 0 20px rgba(249, 115, 22, 0.3); }
+        .status-active { background: #10b981; color: white; }
+        .status-inactive { background: #ef4444; color: white; }
+        .status-pending { background: #f59e0b; color: white; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <button onclick="window.location.href='dashboard.html'" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white mr-4">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Volver
+                    </button>
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center">
+                            <i class="fas fa-truck text-2xl text-white mr-3"></i>
+                            <h1 class="text-xl font-bold text-white">Gestión de Proveedores</h1>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="newProviderBtn" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white">
+                        <i class="fas fa-plus mr-1"></i>
+                        Nuevo Proveedor
+                    </button>
+                    <button id="logoutBtn" class="nav-item px-3 py-2 rounded-lg text-white/80 hover:text-white">
+                        <i class="fas fa-sign-out-alt mr-1"></i>
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8 fade-in">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Proveedores</h2>
+                    <p class="text-gray-600">Administra tus proveedores y sus relaciones comerciales</p>
+                </div>
+                <div class="flex space-x-4">
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <p class="text-sm text-gray-600">Proveedores Activos</p>
+                        <p id="activeProviders" class="text-2xl font-bold text-orange-600">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <p class="text-sm text-gray-600">Total Proveedores</p>
+                        <p id="totalProviders" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="Nombre, código o contacto..." 
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <select id="statusFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <option value="">Todos los estados</option>
+                        <option value="ACTIVO">ACTIVO</option>
+                        <option value="INACTIVO">INACTIVO</option>
+                        <option value="PENDIENTE">PENDIENTE</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rubro</label>
+                    <select id="categoryFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <option value="">Todos los rubros</option>
+                        <option value="BEBIDAS">BEBIDAS</option>
+                        <option value="ALIMENTOS">ALIMENTOS</option>
+                        <option value="ENVASES">ENVASES</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="clearFilters" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-times mr-2"></i>
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Providers Grid -->
+        <div id="providersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 fade-in">
+            <!-- Las tarjetas se cargarán dinámicamente -->
+        </div>
+
+        <!-- Providers Table -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Código</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nombre</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Contacto</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Rubro</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Estado</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="providersTable" class="divide-y divide-gray-200">
+                        <!-- Las filas se cargarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-12">
+            <i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600">No se encontraron proveedores</p>
+        </div>
+    </div>
+
+    <!-- Provider Modal -->
+    <div id="providerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 id="modalTitle" class="text-xl font-semibold text-gray-800">Nuevo Proveedor</h3>
+                    <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="providerForm" class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Código *</label>
+                        <input type="text" id="providerCode" required placeholder="PROV-001" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                        <input type="text" id="providerName" required 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contacto Principal</label>
+                        <input type="text" id="contactName" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                        <input type="tel" id="phone" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="email" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Rubro *</label>
+                        <select id="category" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                            <option value="">Seleccionar rubro</option>
+                            <option value="BEBIDAS">BEBIDAS</option>
+                            <option value="ALIMENTOS">ALIMENTOS</option>
+                            <option value="ENVASES">ENVASES</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
+                    <textarea id="address" rows="2" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                              placeholder="Dirección del proveedor..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Condición de Pago</label>
+                        <select id="paymentTerms" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                            <option value="CONTADO">CONTADO</option>
+                            <option value="30 DÍAS">30 DÍAS</option>
+                            <option value="60 DÍAS">60 DÍAS</option>
+                            <option value="90 DÍAS">90 DÍAS</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                        <select id="status" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent input-focus">
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="INACTIVO">INACTIVO</option>
+                            <option value="PENDIENTE">PENDIENTE</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notas Adicionales</label>
+                    <textarea id="notes" rows="3" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                              placeholder="Información adicional sobre el proveedor..."></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                    <button type="button" id="cancelProvider" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="saveProvider" class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        Guardar Proveedor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Verificar autenticación
+        const currentUser = localStorage.getItem('currentUser');
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        }
+
+        // Variables globales
+        let providers = [];
+        let currentEditingId = null;
+
+        // Cerrar sesión
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
+
+        // Modal functionality
+        const modal = document.getElementById('providerModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const form = document.getElementById('providerForm');
+
+        document.getElementById('newProviderBtn').addEventListener('click', openNewProviderModal);
+        document.getElementById('closeModal').addEventListener('click', closeProviderModal);
+        document.getElementById('cancelProvider').addEventListener('click', closeProviderModal);
+
+        function openNewProviderModal() {
+            currentEditingId = null;
+            modalTitle.textContent = 'Nuevo Proveedor';
+            form.reset();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            anime({
+                targets: '#providerModal .bg-white',
+                scale: [0.9, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutQuad'
+            });
+        }
+
+        function openEditProviderModal(provider) {
+            currentEditingId = provider.id;
+            modalTitle.textContent = 'Editar Proveedor';
+            
+            // Llenar formulario con datos del proveedor
+            document.getElementById('providerCode').value = provider.code;
+            document.getElementById('providerName').value = provider.name;
+            document.getElementById('contactName').value = provider.contact || '';
+            document.getElementById('phone').value = provider.phone || '';
+            document.getElementById('email').value = provider.email || '';
+            document.getElementById('address').value = provider.address || '';
+            document.getElementById('category').value = provider.category;
+            document.getElementById('paymentTerms').value = provider.paymentTerms || 'CONTADO';
+            document.getElementById('status').value = provider.status;
+            document.getElementById('notes').value = provider.notes || '';
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            anime({
+                targets: '#providerModal .bg-white',
+                scale: [0.9, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutQuad'
+            });
+        }
+
+        function closeProviderModal() {
+            anime({
+                targets: '#providerModal .bg-white',
+                scale: [1, 0.9],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInQuad',
+                complete: () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    form.reset();
+                    currentEditingId = null;
+                }
+            });
+        }
+
+        // Guardar proveedor
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const providerData = {
+                code: document.getElementById('providerCode').value,
+                name: document.getElementById('providerName').value,
+                contact: document.getElementById('contactName').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value,
+                category: document.getElementById('category').value,
+                paymentTerms: document.getElementById('paymentTerms').value,
+                status: document.getElementById('status').value,
+                notes: document.getElementById('notes').value,
+                createdAt: new Date().toISOString()
+            };
+            
+            if (currentEditingId) {
+                // Editar proveedor existente
+                const index = providers.findIndex(p => p.id === currentEditingId);
+                if (index !== -1) {
+                    providers[index] = { ...providers[index], ...providerData };
+                    showNotification('Proveedor actualizado exitosamente', 'success');
+                }
+            } else {
+                // Crear nuevo proveedor
+                const newProvider = {
+                    id: Date.now(),
+                    ...providerData
+                };
+                providers.push(newProvider);
+                showNotification('Proveedor creado exitosamente', 'success');
+            }
+            
+            renderProviders();
+            updateStats();
+            closeProviderModal();
+        });
+
+        // Eliminar proveedor
+        function deleteProvider(id) {
+            if (confirm('¿Estás seguro de eliminar este proveedor?')) {
+                providers = providers.filter(p => p.id !== id);
+                renderProviders();
+                updateStats();
+                showNotification('Proveedor eliminado', 'info');
+            }
+        }
+
+        // Renderizar proveedores
+        function renderProviders(filteredProviders = providers) {
+            const grid = document.getElementById('providersGrid');
+            const table = document.getElementById('providersTable');
+            
+            if (filteredProviders.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                grid.innerHTML = '';
+                table.innerHTML = '';
+                return;
+            }
+            
+            document.getElementById('emptyState').classList.add('hidden');
+            
+            // Renderizar grid de tarjetas
+            grid.innerHTML = filteredProviders.map(provider => `
+                <div class="provider-card bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">${provider.name}</h3>
+                            <p class="text-sm text-gray-500">${provider.code}</p>
+                        </div>
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full status-${provider.status.toLowerCase()}">
+                            ${provider.status}
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-tag mr-2 text-orange-500"></i>
+                            ${provider.category}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-phone mr-2 text-orange-500"></i>
+                            ${provider.phone || 'Sin teléfono'}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-envelope mr-2 text-orange-500"></i>
+                            ${provider.email || 'Sin email'}
+                        </p>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <p class="text-sm text-gray-500">
+                            Pago: ${provider.paymentTerms}
+                        </p>
+                        <div class="flex space-x-2">
+                            <button onclick="openEditProviderModal(${JSON.stringify(provider).replace(/"/g, '&quot;')})" 
+                                    class="text-orange-600 hover:text-orange-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteProvider(${provider.id})" 
+                                    class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Renderizar tabla
+            table.innerHTML = filteredProviders.map(provider => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${provider.code}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${provider.name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        ${provider.contact || 'Sin contacto'}<br>
+                        <span class="text-xs">${provider.phone || 'Sin teléfono'}</span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${provider.category}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full status-${provider.status.toLowerCase()}">
+                            ${provider.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex space-x-2">
+                            <button onclick="openEditProviderModal(${JSON.stringify(provider).replace(/"/g, '&quot;')})" 
+                                    class="text-orange-600 hover:text-orange-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteProvider(${provider.id})" 
+                                    class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Filtros
+        document.getElementById('searchInput').addEventListener('input', filterProviders);
+        document.getElementById('statusFilter').addEventListener('change', filterProviders);
+        document.getElementById('categoryFilter').addEventListener('change', filterProviders);
+        document.getElementById('clearFilters').addEventListener('click', clearFilters);
+
+        function filterProviders() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            
+            const filtered = providers.filter(provider => {
+                const matchesSearch = !searchTerm || 
+                    provider.name.toLowerCase().includes(searchTerm) ||
+                    provider.code.toLowerCase().includes(searchTerm) ||
+                    (provider.contact && provider.contact.toLowerCase().includes(searchTerm));
+                
+                const matchesStatus = !statusFilter || provider.status === statusFilter;
+                const matchesCategory = !categoryFilter || provider.category === categoryFilter;
+                
+                return matchesSearch && matchesStatus && matchesCategory;
+            });
+            
+            renderProviders(filtered);
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            renderProviders();
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            const activeProviders = providers.filter(p => p.status === 'ACTIVO').length;
+            const totalProviders = providers.length;
+            
+            document.getElementById('activeProviders').textContent = activeProviders;
+            document.getElementById('totalProviders').textContent = totalProviders;
+        }
+
+        // Notificaciones
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Cargar proveedores de ejemplo
+        function loadSampleProviders() {
+            const sampleProviders = [
+                {
+                    id: 1,
+                    code: 'COCA-COLA',
+                    name: 'Coca-Cola Argentina',
+                    contact: 'Juan Pérez',
+                    phone: '011-4567-8900',
+                    email: 'contacto@cocacola.com',
+                    address: 'Av. Corrientes 1234, CABA',
+                    category: 'BEBIDAS',
+                    paymentTerms: '30 DÍAS',
+                    status: 'ACTIVO',
+                    notes: 'Principal proveedor de bebidas gaseosas'
+                },
+                {
+                    id: 2,
+                    code: 'PEPSI',
+                    name: 'PepsiCo Argentina',
+                    contact: 'María González',
+                    phone: '011-4567-8901',
+                    email: 'ventas@pepsi.com',
+                    address: 'Av. 9 de Julio 567, CABA',
+                    category: 'BEBIDAS',
+                    paymentTerms: '30 DÍAS',
+                    status: 'ACTIVO',
+                    notes: 'Proveedor secundario'
+                },
+                {
+                    id: 3,
+                    code: 'QUILMES',
+                    name: 'Cervecería Quilmes',
+                    contact: 'Carlos Rodríguez',
+                    phone: '011-4567-8902',
+                    email: 'comercial@quilmes.com',
+                    address: 'Av. San Martín 890, Quilmes',
+                    category: 'BEBIDAS',
+                    paymentTerms: '60 DÍAS',
+                    status: 'ACTIVO',
+                    notes: 'Exclusivo para cervezas'
+                },
+                {
+                    id: 4,
+                    code: 'BRAHMA',
+                    name: 'Cervecería Brahma',
+                    contact: 'Ana López',
+                    phone: '011-4567-8903',
+                    email: 'ventas@brahma.com',
+                    address: 'Calle Florida 345, CABA',
+                    category: 'BEBIDAS',
+                    paymentTerms: '30 DÍAS',
+                    status: 'PENDIENTE',
+                    notes: 'Nueva relación comercial'
+                }
+            ];
+            
+            providers = sampleProviders;
+            renderProviders();
+            updateStats();
+        }
+
+        // Inicializar
+        loadSampleProviders();
+        
+        // Animación inicial
+        anime({
+            targets: '.fade-in',
+            opacity: [0, 1],
+            translateY: [30, 0],
+            duration: 600,
+            delay: anime.stagger(100),
+            easing: 'easeOutQuad'
+        });
+    </script>
+</body>
+</html>

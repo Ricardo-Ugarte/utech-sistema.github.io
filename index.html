@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Bebidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .hover-lift { transition: transform 0.3s ease; }
+        .hover-lift:hover { transform: translateY(-5px); }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .input-focus { transition: all 0.3s ease; }
+        .input-focus:focus { transform: scale(1.02); box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <!-- Logo Container -->
+        <div class="text-center mb-8 animate-float">
+            <div class="w-20 h-20 mx-auto mb-4 glass-effect rounded-full flex items-center justify-center">
+                <i class="fas fa-wine-bottle text-3xl text-white"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Sistema de Gestión</h1>
+            <p class="text-white/80 text-lg">Control de Bebidas</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="glass-effect rounded-2xl p-8 hover-lift">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-semibold text-white mb-2">Iniciar Sesión</h2>
+                <p class="text-white/70">Accede a tu cuenta</p>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-white/80 text-sm font-medium mb-2">Usuario</label>
+                    <div class="relative">
+                        <input type="text" id="username" required 
+                               class="w-full px-4 py-3 pl-12 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 input-focus focus:outline-none focus:border-white/40">
+                        <i class="fas fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-white/80 text-sm font-medium mb-2">Contraseña</label>
+                    <div class="relative">
+                        <input type="password" id="password" required 
+                               class="w-full px-4 py-3 pl-12 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 input-focus focus:outline-none focus:border-white/40">
+                        <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60"></i>
+                        <button type="button" id="togglePassword" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded bg-white/10 border-white/20 text-blue-500">
+                        <span class="ml-2 text-white/70 text-sm">Recordarme</span>
+                    </label>
+                    <a href="#" class="text-white/70 text-sm hover:text-white transition-colors">¿Olvidaste tu contraseña?</a>
+                </div>
+
+                <button type="submit" class="w-full bg-white/20 hover:bg-white/30 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Ingresar
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-white/60 text-sm">
+                    ¿No tienes cuenta? 
+                    <a href="#" class="text-white hover:text-white/80 transition-colors">Regístrate</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-white text-center">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <span id="errorText"></span>
+        </div>
+    </div>
+<!-- Agregar este código al final del body en cada página HTML -->
+
+<!-- Chatbot Widget -->
+<div id="chatbotWidget" class="fixed bottom-6 right-6 z-40">
+  <button id="chatbotToggle" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110">
+    <i class="fas fa-robot text-xl"></i>
+  </button>
+</div>
+
+<!-- Chatbot Modal -->
+<div id="chatbotModal" class="fixed bottom-24 right-6 w-80 h-96 bg-white rounded-xl shadow-2xl z-50 hidden flex-col border border-gray-200">
+  <!-- Header -->
+  <div class="bg-indigo-600 text-white p-4 rounded-t-xl flex justify-between items-center">
+    <div class="flex items-center">
+      <i class="fas fa-robot mr-2"></i>
+      <span class="font-semibold">Asistente Virtual</span>
+    </div>
+    <button id="chatbotClose" class="text-white hover:text-gray-200">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  
+  <!-- Chat Messages -->
+  <div id="chatbotMessages" class="flex-1 p-4 overflow-y-auto bg-gray-50">
+    <div class="chat-message bot-message mb-4">
+      <div class="bg-white rounded-lg p-3 shadow-sm max-w-[85%]">
+        <p class="text-sm text-gray-700">¡Hola! Soy tu asistente virtual. Puedo ayudarte con consultas sobre:</p>
+        <ul class="text-xs text-gray-600 mt-2 list-disc pl-4">
+          <li>Stock de productos</li>
+          <li>Ventas recientes</li>
+          <li>Compras y costeo</li>
+          <li>Información de artículos</li>
+        </ul>
+        <p class="text-xs text-gray-500 mt-2">¿En qué puedo ayudarte?</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Input Area -->
+  <div class="p-3 border-t border-gray-200">
+    <div class="flex space-x-2">
+      <input 
+        id="chatbotInput" 
+        type="text" 
+        placeholder="Escribe tu consulta..." 
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+      >
+      <button id="chatbotSend" class="bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 transition-colors">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+    <div class="mt-2 flex flex-wrap gap-1">
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Qué productos tienen stock bajo?">
+        Stock bajo
+      </button>
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Cuáles son las ventas de hoy?">
+        Ventas hoy
+      </button>
+      <button class="quick-question text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded" data-question="¿Qué artículos hay en el sistema?">
+        Listar artículos
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .chat-message {
+    display: flex;
+    margin-bottom: 1rem;
+  }
+  
+  .user-message {
+    justify-content: flex-end;
+  }
+  
+  .bot-message {
+    justify-content: flex-start;
+  }
+  
+  .user-message > div {
+    background-color: #e0e7ff;
+    color: #3730a3;
+  }
+  
+  .bot-message > div {
+    background-color: white;
+    color: #374151;
+  }
+  
+  .quick-question {
+    transition: all 0.2s ease;
+  }
+  
+  .quick-question:hover {
+    transform: translateY(-1px);
+  }
+  
+  #chatbotModal {
+    transition: all 0.3s ease;
+  }
+  
+  #chatbotModal.show {
+    display: flex !important;
+    animation: slideInUp 0.3s ease;
+  }
+  
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const API = 'http://localhost:3000';
+  
+  // Elementos del DOM
+  const chatbotToggle = document.getElementById('chatbotToggle');
+  const chatbotModal = document.getElementById('chatbotModal');
+  const chatbotClose = document.getElementById('chatbotClose');
+  const chatbotMessages = document.getElementById('chatbotMessages');
+  const chatbotInput = document.getElementById('chatbotInput');
+  const chatbotSend = document.getElementById('chatbotSend');
+  const quickQuestions = document.querySelectorAll('.quick-question');
+  
+  // Estado del chatbot
+  let isChatbotOpen = false;
+  
+  // Funciones de utilidad
+  function addMessage(message, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'} mb-4`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = `rounded-lg p-3 shadow-sm max-w-[85%] ${isUser ? 'bg-indigo-100 text-indigo-800' : 'bg-white text-gray-700'}`;
+    
+    // Si el mensaje contiene HTML, lo insertamos directamente
+    if (typeof message === 'string' && message.includes('<')) {
+      messageContent.innerHTML = message;
+    } else {
+      messageContent.innerHTML = `<p class="text-sm">${message}</p>`;
+    }
+    
+    messageDiv.appendChild(messageContent);
+    chatbotMessages.appendChild(messageDiv);
+    
+    // Scroll al final
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+  }
+  
+  function showTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message bot-message mb-4';
+    typingDiv.id = 'typing-indicator';
+    
+    const typingContent = document.createElement('div');
+    typingContent.className = 'bg-white rounded-lg p-3 shadow-sm max-w-[85%]';
+    typingContent.innerHTML = `
+      <div class="flex space-x-1">
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+      </div>
+    `;
+    
+    typingDiv.appendChild(typingContent);
+    chatbotMessages.appendChild(typingDiv);
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    
+    return typingDiv;
+  }
+  
+  function removeTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) {
+      typingIndicator.remove();
+    }
+  }
+  
+  // Procesar consultas del usuario
+  async function processQuery(query) {
+    const typingIndicator = showTypingIndicator();
+    
+    try {
+      // Normalizar la consulta
+      const normalizedQuery = query.toLowerCase().trim();
+      
+      // Detectar el tipo de consulta
+      if (normalizedQuery.includes('stock') || normalizedQuery.includes('inventario')) {
+        if (normalizedQuery.includes('bajo') || normalizedQuery.includes('poco')) {
+          await handleLowStockQuery();
+        } else if (normalizedQuery.includes('total') || normalizedQuery.includes('general')) {
+          await handleTotalStockQuery();
+        } else {
+          await handleStockQuery(normalizedQuery);
+        }
+      } else if (normalizedQuery.includes('venta') || normalizedQuery.includes('ventas')) {
+        if (normalizedQuery.includes('hoy') || normalizedQuery.includes('hoy')) {
+          await handleTodaySalesQuery();
+        } else if (normalizedQuery.includes('reciente')) {
+          await handleRecentSalesQuery();
+        } else {
+          await handleSalesQuery();
+        }
+      } else if (normalizedQuery.includes('compra') || normalizedQuery.includes('compras') || normalizedQuery.includes('costeo')) {
+        await handlePurchasesQuery();
+      } else if (normalizedQuery.includes('artículo') || normalizedQuery.includes('artículos') || normalizedQuery.includes('producto')) {
+        await handleArticlesQuery();
+      } else if (normalizedQuery.includes('hola') || normalizedQuery.includes('help') || normalizedQuery.includes('ayuda')) {
+        showHelp();
+      } else {
+        addMessage("Lo siento, no entiendo tu consulta. Puedo ayudarte con información sobre stock, ventas, compras y artículos. ¿Podrías reformular tu pregunta?");
+      }
+    } catch (error) {
+      console.error('Error procesando consulta:', error);
+      addMessage("Lo siento, ha ocurrido un error al procesar tu consulta. Por favor, intenta de nuevo.");
+    } finally {
+      removeTypingIndicator();
+    }
+  }
+  
+  // Manejar consultas de stock bajo
+  async function handleLowStockQuery() {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const lowStockItems = data.data.filter(item => 
+          item.EstadoStock === 'STOCK_BAJO' || item.EstadoStock === 'SIN_STOCK'
+        );
+        
+        if (lowStockItems.length > 0) {
+          let message = `<p class="font-semibold text-sm mb-2">Productos con stock bajo o sin stock:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          
+          lowStockItems.forEach(item => {
+            const status = item.EstadoStock === 'SIN_STOCK' ? 
+              '<span class="text-red-500 font-medium">SIN STOCK</span>' : 
+              '<span class="text-yellow-500 font-medium">STOCK BAJO</span>';
+            
+            message += `<li>${item.idArticulos} - ${item.descripcionArticulos}: ${item.StockTotal} unidades ${status}</li>`;
+          });
+          
+          message += `</ul>`;
+          message += `<p class="text-xs text-gray-500 mt-2">Total: ${lowStockItems.length} productos</p>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("¡Excelente! No hay productos con stock bajo en este momento.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de stock. Intenta nuevamente.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock bajo:', error);
+      addMessage("Error al consultar el stock bajo. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de stock total
+  async function handleTotalStockQuery() {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const totalItems = data.data.length;
+        const totalStock = data.data.reduce((sum, item) => sum + item.StockTotal, 0);
+        const itemsWithStock = data.data.filter(item => item.StockTotal > 0).length;
+        const itemsWithoutStock = data.data.filter(item => item.StockTotal === 0).length;
+        
+        let message = `<p class="font-semibold text-sm mb-2">Resumen general de stock:</p>`;
+        message += `<div class="text-xs space-y-1">`;
+        message += `<p>• Total de artículos: ${totalItems}</p>`;
+        message += `<p>• Stock total: ${totalStock} unidades</p>`;
+        message += `<p>• Artículos con stock: ${itemsWithStock}</p>`;
+        message += `<p>• Artículos sin stock: ${itemsWithoutStock}</p>`;
+        message += `</div>`;
+        
+        addMessage(message);
+      } else {
+        addMessage("No se pudo obtener la información de stock general.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock total:', error);
+      addMessage("Error al consultar el stock general. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de stock específicas
+  async function handleStockQuery(query) {
+    try {
+      const response = await fetch(`${API}/api/stock`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        // Buscar productos que coincidan con la consulta
+        const searchTerm = query.replace('stock', '').trim();
+        const matchingItems = data.data.filter(item => 
+          item.idArticulos.toLowerCase().includes(searchTerm) || 
+          item.descripcionArticulos.toLowerCase().includes(searchTerm)
+        );
+        
+        if (matchingItems.length > 0) {
+          let message = `<p class="font-semibold text-sm mb-2">Resultados de stock:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          
+          matchingItems.slice(0, 5).forEach(item => {
+            const status = item.EstadoStock === 'SIN_STOCK' ? 
+              'text-red-500' : 
+              item.EstadoStock === 'STOCK_BAJO' ? 'text-yellow-500' : 'text-green-500';
+            
+            message += `<li>${item.idArticulos} - ${item.descripcionArticulos}: <span class="${status} font-medium">${item.StockTotal} unidades</span></li>`;
+          });
+          
+          message += `</ul>`;
+          
+          if (matchingItems.length > 5) {
+            message += `<p class="text-xs text-gray-500 mt-1">... y ${matchingItems.length - 5} productos más</p>`;
+          }
+          
+          addMessage(message);
+        } else {
+          addMessage(`No encontré productos que coincidan con "${searchTerm}". ¿Podrías intentar con otro término?`);
+        }
+      } else {
+        addMessage("No se pudo obtener la información de stock.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo stock:', error);
+      addMessage("Error al consultar el stock. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de ventas de hoy
+  async function handleTodaySalesQuery() {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`${API}/api/ventas?fechaDesde=${today}&fechaHasta=${today}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Ventas de hoy (${today}):</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas: ${totalSales}</p>`;
+          message += `<p>• Monto total: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          if (data.data.length <= 5) {
+            message += `<p class="text-xs font-medium mt-2">Detalles:</p>`;
+            message += `<ul class="text-xs space-y-1">`;
+            data.data.forEach(sale => {
+              message += `<li>Venta #${sale.VentaKey} - ${sale.Cliente}: $${(sale.TotalVenta || 0).toFixed(2)}</li>`;
+            });
+            message += `</ul>`;
+          }
+          
+          addMessage(message);
+        } else {
+          addMessage(`No hay ventas registradas para hoy (${today}).`);
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas de hoy.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas de hoy:', error);
+      addMessage("Error al consultar las ventas de hoy. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de ventas recientes
+  async function handleRecentSalesQuery() {
+    try {
+      // Obtener ventas de los últimos 7 días
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      const response = await fetch(`${API}/api/ventas?fechaDesde=${startDateStr}&fechaHasta=${endDateStr}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Ventas recientes (últimos 7 días):</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas: ${totalSales}</p>`;
+          message += `<p>• Monto total: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          // Mostrar las 3 ventas más recientes
+          const recentSales = data.data.slice(0, 3);
+          message += `<p class="text-xs font-medium mt-2">Ventas más recientes:</p>`;
+          message += `<ul class="text-xs space-y-1">`;
+          recentSales.forEach(sale => {
+            const date = new Date(sale.Fecha).toLocaleDateString('es-ES');
+            message += `<li>${date} - Venta #${sale.VentaKey}: $${(sale.TotalVenta || 0).toFixed(2)}</li>`;
+          });
+          message += `</ul>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("No hay ventas registradas en los últimos 7 días.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas recientes.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas recientes:', error);
+      addMessage("Error al consultar las ventas recientes. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas generales de ventas
+  async function handleSalesQuery() {
+    try {
+      const response = await fetch(`${API}/api/ventas`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.data.length > 0) {
+          const totalSales = data.data.length;
+          const totalAmount = data.data.reduce((sum, sale) => sum + (sale.TotalVenta || 0), 0);
+          
+          let message = `<p class="font-semibold text-sm mb-2">Resumen de ventas:</p>`;
+          message += `<div class="text-xs space-y-1">`;
+          message += `<p>• Total de ventas registradas: ${totalSales}</p>`;
+          message += `<p>• Monto total histórico: $${totalAmount.toFixed(2)}</p>`;
+          message += `</div>`;
+          
+          addMessage(message);
+        } else {
+          addMessage("No hay ventas registradas en el sistema.");
+        }
+      } else {
+        addMessage("No se pudo obtener la información de ventas.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo ventas:', error);
+      addMessage("Error al consultar las ventas. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Manejar consultas de compras
+  async function handlePurchasesQuery() {
+    addMessage("La funcionalidad de consulta de compras está en desarrollo. Por ahora, puedes revisar las compras en la sección de 'Costeo de Compras'.");
+  }
+  
+  // Manejar consultas de artículos
+  async function handleArticlesQuery() {
+    try {
+      const response = await fetch(`${API}/api/articles`);
+      const data = await response.json();
+      
+      if (data.success && data.data.length > 0) {
+        const totalArticles = data.data.length;
+        const categories = [...new Set(data.data.map(item => item.Categoria).filter(Boolean))];
+        
+        let message = `<p class="font-semibold text-sm mb-2">Resumen de artículos:</p>`;
+        message += `<div class="text-xs space-y-1">`;
+        message += `<p>• Total de artículos: ${totalArticles}</p>`;
+        
+        if (categories.length > 0) {
+          message += `<p>• Categorías: ${categories.join(', ')}</p>`;
+        }
+        
+        message += `</div>`;
+        
+        // Mostrar algunos artículos como ejemplo
+        const sampleArticles = data.data.slice(0, 3);
+        message += `<p class="text-xs font-medium mt-2">Algunos artículos:</p>`;
+        message += `<ul class="text-xs space-y-1">`;
+        sampleArticles.forEach(article => {
+          message += `<li>${article.idArticulos} - ${article.descripcionArticulos} (${article.Categoria || 'Sin categoría'})</li>`;
+        });
+        message += `</ul>`;
+        
+        if (totalArticles > 3) {
+          message += `<p class="text-xs text-gray-500 mt-1">... y ${totalArticles - 3} artículos más</p>`;
+        }
+        
+        addMessage(message);
+      } else {
+        addMessage("No hay artículos registrados en el sistema.");
+      }
+    } catch (error) {
+      console.error('Error obteniendo artículos:', error);
+      addMessage("Error al consultar los artículos. Por favor, intenta más tarde.");
+    }
+  }
+  
+  // Mostrar ayuda
+  function showHelp() {
+    const helpMessage = `
+      <p class="font-semibold text-sm mb-2">Puedo ayudarte con:</p>
+      <ul class="text-xs space-y-1 list-disc pl-4">
+        <li><strong>Consultas de stock:</strong> "stock bajo", "stock total", "stock de [producto]"</li>
+        <li><strong>Consultas de ventas:</strong> "ventas de hoy", "ventas recientes", "resumen de ventas"</li>
+        <li><strong>Consultas de compras:</strong> "compras recientes", "costeo"</li>
+        <li><strong>Consultas de artículos:</strong> "listar artículos", "artículos por categoría"</li>
+      </ul>
+      <p class="text-xs text-gray-500 mt-2">También puedes usar los botones de consulta rápida.</p>
+    `;
+    
+    addMessage(helpMessage);
+  }
+  
+  // Event Listeners
+  chatbotToggle.addEventListener('click', function() {
+    isChatbotOpen = !isChatbotOpen;
+    
+    if (isChatbotOpen) {
+      chatbotModal.classList.remove('hidden');
+      chatbotModal.classList.add('show');
+      chatbotInput.focus();
+    } else {
+      chatbotModal.classList.remove('show');
+      setTimeout(() => {
+        chatbotModal.classList.add('hidden');
+      }, 300);
+    }
+  });
+  
+  chatbotClose.addEventListener('click', function() {
+    isChatbotOpen = false;
+    chatbotModal.classList.remove('show');
+    setTimeout(() => {
+      chatbotModal.classList.add('hidden');
+    }, 300);
+  });
+  
+  chatbotSend.addEventListener('click', function() {
+    sendMessage();
+  });
+  
+  chatbotInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
+  
+  quickQuestions.forEach(button => {
+    button.addEventListener('click', function() {
+      const question = this.getAttribute('data-question');
+      chatbotInput.value = question;
+      sendMessage();
+    });
+  });
+  
+  function sendMessage() {
+    const message = chatbotInput.value.trim();
+    
+    if (message) {
+      addMessage(message, true);
+      chatbotInput.value = '';
+      
+      // Procesar la consulta después de un pequeño delay
+      setTimeout(() => {
+        processQuery(message);
+      }, 500);
+    }
+  }
+  
+  // Cerrar el chatbot al hacer clic fuera de él
+  document.addEventListener('click', function(e) {
+    if (isChatbotOpen && 
+        !chatbotModal.contains(e.target) && 
+        !chatbotToggle.contains(e.target)) {
+      isChatbotOpen = false;
+      chatbotModal.classList.remove('show');
+      setTimeout(() => {
+        chatbotModal.classList.add('hidden');
+      }, 300);
+    }
+  });
+});
+</script>
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            // Validación básica
+            if (!username || !password) {
+                showError('Por favor completa todos los campos');
+                return;
+            }
+            
+            // Simulación de autenticación (en producción esto se conectaría a un backend)
+            if (username === 'admin' && password === 'admin123') {
+                // Login exitoso
+                localStorage.setItem('currentUser', JSON.stringify({
+                    username: username,
+                    role: 'admin',
+                    loginTime: new Date().toISOString()
+                }));
+                
+                // Animación de éxito
+                anime({
+                    targets: '.glass-effect',
+                    scale: [1, 0.95],
+                    opacity: [1, 0],
+                    duration: 500,
+                    easing: 'easeInQuad',
+                    complete: function() {
+                        window.location.href = 'dashboard.html';
+                    }
+                });
+            } else {
+                showError('Usuario o contraseña incorrectos');
+            }
+        });
+
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            
+            anime({
+                targets: '#errorMessage',
+                opacity: [0, 1],
+                translateY: [-20, 0],
+                duration: 300,
+                easing: 'easeOutQuad'
+            });
+            
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Animación inicial
+        anime({
+            targets: '.glass-effect',
+            opacity: [0, 1],
+            translateY: [30, 0],
+            duration: 800,
+            easing: 'easeOutQuad'
+        });
+
+        // Verificar si el usuario ya está logueado
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>
